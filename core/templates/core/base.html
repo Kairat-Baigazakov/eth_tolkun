@@ -6,14 +6,17 @@
     <title>EHC Tolkun</title>
 </head>
 <body>
-    <h1>EHC Tolkun</h1>
-    <hr>
-    {% if user.is_authenticated %}
-      <p>Вы вошли как {{ user.username }} |
-         <a href="{% url 'logout' %}">Выйти</a></p>
-    {% else %}
-      <p><a href="{% url 'login' %}">Войти</a></p>
-    {% endif %}
-    {% block content %}{% endblock %}
+  {% if user.is_authenticated %}
+    <p>Вы вошли как {{ user.username }}</p>
+    <form method="post" action="{% url 'logout' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit">Выйти</button>
+    </form>
+  {% else %}
+    <a href="{% url 'login' %}">Войти</a>
+  {% endif %}
+
+  {% block content %}
+  {% endblock %}
 </body>
 </html>

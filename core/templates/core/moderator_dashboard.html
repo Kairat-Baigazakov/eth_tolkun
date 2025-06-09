@@ -1,0 +1,24 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+  <h2>Панель модератора</h2>
+  <p>Добро пожаловать, {{ user.first_name }}!</p>
+
+  <h3>Ближайшие заезды</h3>
+  <ul>
+    {% for arrival in arrivals %}
+      <li>{{ arrival.start_date }} — {{ arrival.end_date }}</li>
+    {% empty %}
+      <li>Нет заездов</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Заявки</h3>
+  <ul>
+    <li>Всего: {{ total_apps }}</li>
+    <li>В ожидании: {{ pending_apps }}</li>
+    <li>Одобрено: {{ approved_apps }}</li>
+  </ul>
+
+  <a href="#">➕ Создать заезд</a> <!-- пока без ссылки -->
+{% endblock %}

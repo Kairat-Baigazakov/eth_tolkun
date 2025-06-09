@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Arrival, Application, Relative
+from .models import Arrival, Application, Relative, User
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from .forms import ApplicationForm
@@ -71,3 +71,36 @@ def moderator_reject(request, app_id):
     app.status = 'rejected'
     app.save()
     return redirect('moderator_applications_list')
+
+
+@login_required
+def moderator_dashboard(request):
+    # Доступ только для модераторов
+    if request.user.role != 'moderator':
+        return redirect('login')
+
+    arrivals = Arrival.objects.all().order_by('start_date')[:5]  # ближайшие 5 заездов
+    total_apps = Application.objects.count()
+    pending_apps = Application.objects.filter(status='pending').count()
+    approved_apps = Application.objects.filter(status='approved').count()
+
+    return render(request, 'core/moderator_dashboard.html', {
+        'arrivals': arrivals,
+        'total_apps': total_apps,
+        'pending_apps': pending_apps,
+        'approved_apps': approved_apps,
+    })
+
+
+@login_required
+def superadmin_dashboard(request):
+    if request.user.role != 'superadmin':
+        return redirect('login')
+
+    arrivals = Arrival.objects.all().order_by('-start_date')
+    users = User.objects.all().order_by('username')
+
+    return render(request, 'core/superadmin_dashboard.html', {
+        'arrivals': arrivals,
+        'users': users,
+    })

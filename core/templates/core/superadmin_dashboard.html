@@ -1,0 +1,24 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+  <h2>Панель суперадмина</h2>
+  <p>Добро пожаловать, {{ user.username }}</p>
+
+  <h3>Все заезды</h3>
+  <ul>
+    {% for arrival in arrivals %}
+      <li>{{ arrival.start_date }} — {{ arrival.end_date }}</li>
+    {% empty %}
+      <li>Нет заездов</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Пользователи</h3>
+  <ul>
+    {% for u in users %}
+      <li>{{ u.username }} — {{ u.get_role_display }}</li>
+    {% endfor %}
+  </ul>
+
+  <a href="#">➕ Создать модератора</a> <!-- Пока без реализации -->
+{% endblock %}
