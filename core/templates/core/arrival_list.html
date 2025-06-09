@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h2>Доступные заезды</h2>
+<ul>
+    {% for arrival in arrivals %}
+        <li>
+            {{ arrival.start_date }} - {{ arrival.end_date }}
+            | <a href="{% url 'apply_for_arrival' arrival.id %}">Подать заявку</a>
+        </li>
+    {% empty %}
+        <li>Нет доступных заездов.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

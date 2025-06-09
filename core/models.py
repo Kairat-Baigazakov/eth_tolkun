@@ -72,12 +72,16 @@ class Price(models.Model):
         return f"{self.arrival}: {self.room_type} / {self.building}"
 
 class Application(models.Model):
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
-    arrival = models.ForeignKey(Arrival, on_delete=models.CASCADE)
-    room = models.ForeignKey(Room, null=True, blank=True, on_delete=models.SET_NULL)
-    relatives = models.ManyToManyField(Relative, blank=True)
+    STATUS_CHOICES = [
+        ('pending', 'Ожидает'),
+        ('approved', 'Одобрено'),
+        ('rejected', 'Отклонено'),
+    ]
+
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    arrival = models.ForeignKey('Arrival', on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
-    approved = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Заявка от {self.employee} на {self.arrival}"
+        return f"{self.user} - {self.arrival} ({self.status})"

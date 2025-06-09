@@ -1,0 +1,34 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h2>Заявки на заезды</h2>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Сотрудник</th>
+            <th>Заезд</th>
+            <th>Дата подачи</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for app in applications %}
+        <tr>
+            <td>{{ app.user.get_full_name }}</td>
+            <td>{{ app.arrival.start_date }} — {{ app.arrival.end_date }}</td>
+            <td>{{ app.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ app.get_status_display }}</td>
+            <td>
+                {% if app.status == 'pending' %}
+                    <a href="{% url 'moderator_approve' app.id %}">Одобрить</a> |
+                    <a href="{% url 'moderator_reject' app.id %}">Отклонить</a>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
