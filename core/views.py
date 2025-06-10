@@ -3,7 +3,6 @@ from django.contrib.auth.decorators import user_passes_test, login_required
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
-from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db.models import Q
 from .forms import LoginForm, UserCreationForm, UserEditForm
