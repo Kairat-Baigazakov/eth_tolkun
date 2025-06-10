@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Распределение путевок в УОЦ Толкун{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .header {
+            background-color: #343a40;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .header .datetime {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 0.75rem;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>
+          <a href="{% url 'dashboard_redirect' %}" class="text-white text-decoration-none">Толкун</a>
+        </h1>
+        <div class="datetime">
+            <span id="current-date"></span>
+            <span id="current-time"></span>
+            <a href="{% url 'logout' %}" class="btn btn-sm btn-light">Выйти</a>
+        </div>
+    </header>
+
+    <main class="container mt-4 mb-5">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        &copy; <span id="current-year"></span> Tolkun. Все права защищены.
+    </footer>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ru-RU', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            document.getElementById('current-time').textContent = time;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('current-date').textContent =
+                new Date().toLocaleDateString('ru-RU');
+            updateTime();
+            setInterval(updateTime, 1000);
+        })
+
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

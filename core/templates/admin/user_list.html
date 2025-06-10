@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}Список пользователей{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <input type="text" name="q" value="{{ query }}" class="form-control"
+                   placeholder="Поиск по логину или email">
+        </div>
+        <div class="col-md-3">
+            <select name="role" class="form-select">
+                <option value="">Все роли</option>
+                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Админ</option>
+                <option value="moderator" {% if role_filter == 'moderator' %}selected{% endif %}>Модератор</option>
+                <option value="user" {% if role_filter == 'user' %}selected{% endif %}>Пользователь</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Найти</button>
+        </div>
+    </form>
+</div>
+
+<table class="table table-hover table-bordered align-middle">
+    <thead class="table-dark text-center">
+        <tr>
+            <th>Логин</th>
+            <th>Email</th>
+            <th>Роль</th>
+            <th>Статус</th>
+            <th>Действие</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in page_obj %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+                {% if user.role == 'admin' %}
+                    <span class="badge bg-danger">Админ</span>
+                {% elif user.role == 'moderator' %}
+                    <span class="badge bg-warning text-dark">Модератор</span>
+                {% else %}
+                    <span class="badge bg-secondary">Пользователь</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% if user.is_active %}
+                    <span class="badge bg-success">Активен</span>
+                {% else %}
+                    <span class="badge bg-secondary">Отключен</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                <a href="{% url 'user_edit' user.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil-square"></i> Редактировать
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">Пользователи не найдены.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<nav aria-label="Навигация страниц">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?q={{ query }}&role={{ role_filter }}&page={{ page_obj.previous_page_number }}">Назад</a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?q={{ query }}&role={{ role_filter }}&page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?q={{ query }}&role={{ role_filter }}&page={{ page_obj.next_page_number }}">Вперёд</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endblock %}

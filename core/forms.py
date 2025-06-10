@@ -1,19 +1,40 @@
 from django import forms
-from .models import Application, Relative
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import AuthenticationForm
 
-class ApplicationForm(forms.ModelForm):
-    relatives = forms.ModelMultipleChoiceField(
-        queryset=Relative.objects.none(),
-        widget=forms.CheckboxSelectMultiple,
-        required=False
-    )
+
+User = get_user_model()
+
+
+class LoginForm(AuthenticationForm):
+    username = forms.CharField(label="Логин", widget=forms.TextInput(attrs={'class': 'form-control'}))
+    password = forms.CharField(label="Пароль", widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
+
+class UserCreationForm(forms.ModelForm):
+    password1 = forms.CharField(label='Пароль', widget=forms.PasswordInput)
+    password2 = forms.CharField(label='Подтвердите пароль', widget=forms.PasswordInput)
 
     class Meta:
-        model = Application
-        fields = []
+        model = User
+        fields = ('username', 'email', 'role')
 
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
-        super(ApplicationForm, self).__init__(*args, **kwargs)
-        if user:
-            self.fields['relatives'].queryset = Relative.objects.filter(owner=user.employee)
+    def clean_password2(self):
+        p1 = self.cleaned_data.get('password1')
+        p2 = self.cleaned_data.get('password2')
+        if p1 and p2 and p1 != p2:
+            raise forms.ValidationError('Пароли не совпадают')
+        return p2
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data['password1'])
+        if commit:
+            user.save()
+        return user
+
+
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'role', 'is_active']

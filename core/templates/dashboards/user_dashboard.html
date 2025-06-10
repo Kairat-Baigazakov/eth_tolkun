@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}Пользовательский-дашборд{% endblock %}
+
+
+{% block content %}
+    <p>Добро пожаловать, {{ request.user.username }}!</p>
+{% endblock %}

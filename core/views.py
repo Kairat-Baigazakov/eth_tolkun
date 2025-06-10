@@ -1,106 +1,126 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Arrival, Application, Relative, User
-from django.core.exceptions import PermissionDenied
-from django.contrib.auth.decorators import login_required
-from .forms import ApplicationForm
-from django.utils import timezone
-from django.shortcuts import render
+from django.contrib.auth.decorators import user_passes_test, login_required
+from django.contrib.auth import logout, get_user_model
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
+from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
+from django.db.models import Q
+from .forms import LoginForm, UserCreationForm, UserEditForm
 
 
-def user_only(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated or request.user.role != 'user':
-            raise PermissionDenied
-        return view_func(request, *args, **kwargs)
-    return wrapper
+User = get_user_model()
+
+
+class CustomLoginView(LoginView):
+    form_class = LoginForm
+    template_name = 'login.html'
+
+    def get_success_url(self):
+        user = self.request.user
+        if hasattr(user, 'role'):
+            if user.role == 'admin':
+                return reverse_lazy('admin_dashboard')
+            elif user.role == 'moderator':
+                return reverse_lazy('moderator_dashboard')
+            else:
+                return reverse_lazy('user_dashboard')
+        else:
+            # Роль не задана, направим на user_dashboard или logout
+            return reverse_lazy('user_dashboard')
+
+
+def index(request):
+    return redirect('login')
+
+
+def admin_check(user):
+    return user.is_authenticated and user.role == 'admin'
 
 
 @login_required
-def arrival_list(request):
-    now = timezone.now()
-    arrivals = Arrival.objects.filter(apply_start__lte=now, apply_end__gte=now)
-    return render(request, 'core/arrival_list.html', {'arrivals': arrivals})
-
-
-@user_only
-@login_required
-def apply_for_arrival(request, arrival_id):
-    arrival = get_object_or_404(Arrival, pk=arrival_id)
+@user_passes_test(admin_check)
+def user_create(request):
     if request.method == 'POST':
-        form = ApplicationForm(request.POST, user=request.user)
+        form = UserCreationForm(request.POST)
         if form.is_valid():
-            application = form.save(commit=False)
-            application.user = request.user
-            application.arrival = arrival
-            application.save()
-            form.cleaned_data['relatives'].update(application=application)
-            return redirect('arrival_list')
+            form.save()
+            return redirect('admin_dashboard')
     else:
-        form = ApplicationForm(user=request.user)
-    return render(request, 'core/application_form.html', {'form': form, 'arrival': arrival})
-
-
-def moderator_only(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated or request.user.role != 'moderator':
-            raise PermissionDenied
-        return view_func(request, *args, **kwargs)
-    return wrapper
+        form = UserCreationForm()
+    return render(request, 'admin/user_create.html', {'form': form})
 
 
 @login_required
-@moderator_only
-def moderator_applications_list(request):
-    applications = Application.objects.select_related('user', 'arrival').order_by('-created_at')
-    return render(request, 'core/moderator_applications_list.html', {'applications': applications})
+@user_passes_test(admin_check)
+def user_list(request):
+    query = request.GET.get('q', '')
+    role_filter = request.GET.get('role', '')
+
+    users = User.objects.all()
+
+    if query:
+        users = users.filter(Q(username__icontains=query) | Q(email__icontains=query))
+    if role_filter:
+        users = users.filter(role=role_filter)
+
+    paginator = Paginator(users, 15)  # 15 пользователей на страницу
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'admin/user_list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'role_filter': role_filter
+    })
 
 
 @login_required
-@moderator_only
-def moderator_approve(request, app_id):
-    app = get_object_or_404(Application, id=app_id)
-    app.status = 'approved'
-    app.save()
-    return redirect('moderator_applications_list')
+@user_passes_test(admin_check)
+def user_edit(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        form = UserEditForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('user_list')
+    else:
+        form = UserEditForm(instance=user)
+
+    return render(request, 'admin/user_edit.html', {
+        'form': form,
+        'user': user,
+    })
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
 
 
 @login_required
-@moderator_only
-def moderator_reject(request, app_id):
-    app = get_object_or_404(Application, id=app_id)
-    app.status = 'rejected'
-    app.save()
-    return redirect('moderator_applications_list')
+@user_passes_test(admin_check)
+def admin_dashboard(request):
+    return render(request, 'dashboards/admin_dashboard.html')
 
 
 @login_required
 def moderator_dashboard(request):
-    # Доступ только для модераторов
-    if request.user.role != 'moderator':
-        return redirect('login')
-
-    arrivals = Arrival.objects.all().order_by('start_date')[:5]  # ближайшие 5 заездов
-    total_apps = Application.objects.count()
-    pending_apps = Application.objects.filter(status='pending').count()
-    approved_apps = Application.objects.filter(status='approved').count()
-
-    return render(request, 'core/moderator_dashboard.html', {
-        'arrivals': arrivals,
-        'total_apps': total_apps,
-        'pending_apps': pending_apps,
-        'approved_apps': approved_apps,
-    })
+    return render(request, 'dashboards/moderator_dashboard.html')
 
 
 @login_required
-def superadmin_dashboard(request):
-    if request.user.role != 'superadmin':
-        return redirect('login')
+def user_dashboard(request):
+    return render(request, 'dashboards/user_dashboard.html')
 
-    arrivals = Arrival.objects.all().order_by('-start_date')
-    users = User.objects.all().order_by('username')
 
-    return render(request, 'core/superadmin_dashboard.html', {
-        'arrivals': arrivals,
-        'users': users,
-    })
+@login_required
+def dashboard_redirect(request):
+    role = getattr(request.user, 'role', None)
+    if role == 'admin':
+        return redirect('admin_dashboard')
+    elif role == 'moderator':
+        return redirect('moderator_dashboard')
+    else:
+        return redirect('user_dashboard')
