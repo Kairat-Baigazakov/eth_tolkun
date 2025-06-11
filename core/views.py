@@ -5,12 +5,13 @@ from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .forms import LoginForm, UserCreationForm, UserEditForm
+from .models import Arrival, Rate, RoomLayout
+from .forms import LoginForm, UserCreationForm, UserEditForm, ArrivalForm, RateForm, RoomLayoutForm
 
 
 User = get_user_model()
 
-
+# Вход и Выход  --------------------------------------------------------------------------------------------------------------------------------------------------
 class CustomLoginView(LoginView):
     form_class = LoginForm
     template_name = 'login.html'
@@ -33,10 +34,19 @@ def index(request):
     return redirect('login')
 
 
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+# Проверки --------------------------------------------------------------------------------------------------------------------------------------------------
 def admin_check(user):
     return user.is_authenticated and user.role == 'admin'
 
 
+def admin_or_moderator(user):
+    return user.is_authenticated and user.role in ['admin', 'moderator']
+
+# ПОЛЬЗОВАТЕЛИ  --------------------------------------------------------------------------------------------------------------------------------------------------
 @login_required
 @user_passes_test(admin_check)
 def user_create(request):
@@ -47,7 +57,7 @@ def user_create(request):
             return redirect('admin_dashboard')
     else:
         form = UserCreationForm()
-    return render(request, 'admin/user_create.html', {'form': form})
+    return render(request, 'user/user_create.html', {'form': form})
 
 
 @login_required
@@ -67,7 +77,7 @@ def user_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'admin/user_list.html', {
+    return render(request, 'user/user_list.html', {
         'page_obj': page_obj,
         'query': query,
         'role_filter': role_filter
@@ -87,17 +97,152 @@ def user_edit(request, user_id):
     else:
         form = UserEditForm(instance=user)
 
-    return render(request, 'admin/user_edit.html', {
+    return render(request, 'user/user_edit.html', {
         'form': form,
         'user': user,
     })
 
+# ЗАЕЗДЫ --------------------------------------------------------------------------------------------------------------------------------------------------
+@login_required
+@user_passes_test(admin_or_moderator)
+def arrival_list(request):
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
 
-def logout_view(request):
-    logout(request)
-    return redirect('login')
+    arrivals = Arrival.objects.all()
+
+    if query:
+        arrivals = arrivals.filter(name__icontains=query)
+    if status_filter:
+        arrivals = arrivals.filter(status=status_filter)
+
+    paginator = Paginator(arrivals, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'arrivals/arrival_list.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'status_filter': status_filter,
+    })
 
 
+@login_required
+@user_passes_test(admin_or_moderator)
+def arrival_create(request):
+    if request.method == 'POST':
+        form = ArrivalForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('arrival_list')
+    else:
+        form = ArrivalForm()
+    return render(request, 'arrivals/arrival_form.html', {'form': form})
+
+
+@login_required
+@user_passes_test(admin_or_moderator)
+def arrival_edit(request, arrival_id):
+    arrival = get_object_or_404(Arrival, id=arrival_id)
+    if request.method == 'POST':
+        form = ArrivalForm(request.POST, instance=arrival)
+        if form.is_valid():
+            form.save()
+            return redirect('arrival_list')
+    else:
+        form = ArrivalForm(instance=arrival)
+    return render(request, 'arrivals/arrival_edit.html', {'form': form, 'arrival': arrival})
+
+# ПЛАНИРОВКА --------------------------------------------------------------------------------------------------------------------------------------------------
+@user_passes_test(admin_check)
+def room_layout_list(request):
+    query = request.GET.get("q", "")
+    room_layouts = RoomLayout.objects.all()
+
+    if query:
+        room_layouts = room_layouts.filter(
+            Q(name__icontains=query) |
+            Q(building_type__icontains=query)
+        )
+
+    return render(request, "room_layout/list.html", {"room_layouts": room_layouts, "query": query})
+
+
+@user_passes_test(admin_check)
+def room_layout_create(request):
+    if request.method == "POST":
+        form = RoomLayoutForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("room_layout_list")
+    else:
+        form = RoomLayoutForm()
+    return render(request, "room_layout/form.html", {"form": form, "title": "Создание планировки"})
+
+
+@user_passes_test(admin_check)
+def room_layout_edit(request, pk):
+    layout = get_object_or_404(RoomLayout, pk=pk)
+    if request.method == "POST":
+        form = RoomLayoutForm(request.POST, instance=layout)
+        if form.is_valid():
+            form.save()
+            return redirect("room_layout_list")
+    else:
+        form = RoomLayoutForm(instance=layout)
+    return render(request, "room_layout/form.html", {"form": form, "title": "Редактирование планировки"})
+
+# ЦЕНЫ --------------------------------------------------------------------------------------------------------------------------------------------------
+@login_required
+@user_passes_test(admin_check)
+def rate_list(request):
+    query = request.GET.get('q', '')
+    building_type_filter = request.GET.get('building_type', '')
+    room_layout_filter = request.GET.get('room_layout', '')
+
+    rates = Rate.objects.all()
+
+    if query:
+        rates = rates.filter(name__icontains=query)
+    if building_type_filter:
+        rates = rates.filter(building_type=building_type_filter)
+    if room_layout_filter:
+        rates = rates.filter(room_layout__id=room_layout_filter)
+
+    room_layouts = RoomLayout.objects.all()
+    building_types = Rate.objects.values_list('building_type', flat=True).distinct()
+
+    return render(request, 'rates/rate_list.html', {
+        'rates': rates,
+        'query': query,
+        'building_type_filter': building_type_filter,
+        'room_layout_filter': room_layout_filter,
+        'room_layouts': room_layouts,
+        'building_types': building_types,
+    })
+
+
+@login_required
+@user_passes_test(admin_check)
+def rate_create(request):
+    form = RateForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('rate_list')
+    return render(request, 'rates/rate_form.html', {'form': form})
+
+
+@login_required
+@user_passes_test(admin_check)
+def rate_edit(request, pk):
+    rate = get_object_or_404(Rate, pk=pk)
+    form = RateForm(request.POST or None, instance=rate)
+    if form.is_valid():
+        form.save()
+        return redirect('rate_list')
+    return render(request, 'rates/rate_form.html', {'form': form})
+
+# Дашбоарды  --------------------------------------------------------------------------------------------------------------------------------------------------
 @login_required
 @user_passes_test(admin_check)
 def admin_dashboard(request):

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Список тарифов{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Список тарифов</h2>
+
+<form method="get" class="row g-3 mb-3 align-items-end">
+    <div class="col-md-3">
+        <label class="form-label">Поиск по наименованию</label>
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Введите название тарифа">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Тип корпуса</label>
+        <select name="building_type" class="form-select">
+            <option value="">Все типы</option>
+            {% for type in building_types %}
+                <option value="{{ type }}" {% if building_type_filter == type %}selected{% endif %}>{{ type }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Наименование номера</label>
+        <select name="room_layout" class="form-select">
+            <option value="">Все номера</option>
+            {% for room in room_layouts %}
+                <option value="{{ room.id }}" {% if room_layout_filter == room.id|stringformat:"s" %}selected{% endif %}>
+                    {{ room.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3 d-flex justify-content-between">
+        <button type="submit" class="btn btn-primary">Фильтровать</button>
+        <a href="{% url 'rate_create' %}" class="btn btn-success">Создать тариф</a>
+    </div>
+</form>
+
+<table class="table table-hover table-bordered align-middle">
+    <thead class="table-dark text-center">
+        <tr>
+            <th>Наименование</th>
+            <th>Цена</th>
+            <th>НДС</th>
+            <th>Тип корпуса</th>
+            <th>Номер</th>
+            <th>Дата создания</th>
+            <th>Действие</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rate in rates %}
+        <tr>
+            <td>{{ rate.name }}</td>
+            <td class="text-end">{{ rate.price }}</td>
+            <td class="text-end">{{ rate.vat }}</td>
+            <td>{{ rate.building_type }}</td>
+            <td>{{ rate.room_layout.name }}</td>
+            <td>{{ rate.created_at|date:"d.m.Y H:i" }}</td>
+            <td class="text-center">
+                <a href="{% url 'rate_edit' rate.id %}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="text-center">Тарифы не найдены.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Планировка{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">Планировка номеров</h3>
+
+<form method="get" class="row g-3 mb-3">
+    <div class="col-md-6">
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Поиск по наименованию или типу корпуса">
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Поиск</button>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'room_layout_create' %}" class="btn btn-success">Создать планировку</a>
+    </div>
+</form>
+
+<table class="table table-bordered align-middle">
+    <thead class="table-dark text-center">
+        <tr>
+            <th>Наименование</th>
+            <th>Мест</th>
+            <th>Этаж</th>
+            <th>Тип корпуса</th>
+            <th>Действие</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for layout in room_layouts %}
+        <tr>
+            <td>{{ layout.name }}</td>
+            <td class="text-center">{{ layout.capacity }}</td>
+            <td class="text-center">{{ layout.floor }}</td>
+            <td>{{ layout.building_type }}</td>
+            <td class="text-center">
+                <a href="{% url 'room_layout_edit' layout.id %}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">Планировки не найдены.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

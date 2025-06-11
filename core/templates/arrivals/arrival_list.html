@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Список заездов{% endblock %}
+
+{% block content %}
+<h2>Список заездов</h2>
+
+<div class="mb-3">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Поиск по наименованию">
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select">
+                <option value="">Все статусы</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активный</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Неактивный</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Найти</button>
+        </div>
+        <div class="col-md-3 text-end">
+            <a href="{% url 'arrival_create' %}" class="btn btn-success">Создать заезд</a>
+        </div>
+    </form>
+</div>
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark text-center">
+        <tr>
+            <th>Наименование</th>
+            <th>Статус</th>
+            <th>Дата начала</th>
+            <th>Дата окончания</th>
+            <th>Период подачи заявок</th>
+            <th>Тариф</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for arrival in page_obj %}
+        <tr>
+            <td>{{ arrival.name }}</td>
+            <td class="text-center">
+                {% if arrival.status == 'active' %}
+                    <span class="badge bg-success">Активный</span>
+                {% else %}
+                    <span class="badge bg-secondary">Неактивный</span>
+                {% endif %}
+            </td>
+            <td>{{ arrival.start_date }}</td>
+            <td>{{ arrival.end_date }}</td>
+            <td>{{ arrival.application_start }} — {{ arrival.application_end }}</td>
+            <td>{{ arrival.rate.name }}</td>
+            <td class="text-center">
+                <a href="{% url 'arrival_edit' arrival.id %}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="text-center">Заезды не найдены.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<nav aria-label="Навигация страниц">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?q={{ query }}&status={{ status_filter }}&page={{ page_obj.previous_page_number }}">Назад</a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?q={{ query }}&status={{ status_filter }}&page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?q={{ query }}&status={{ status_filter }}&page={{ page_obj.next_page_number }}">Вперёд</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endblock %}

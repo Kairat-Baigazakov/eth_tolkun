@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Админ-дашборд{% endblock %}
+{% block title %}Толкун админ панель{% endblock %}
 
 
 {% block content %}
@@ -21,6 +21,33 @@
                 <h5 class="card-title">Список пользователей</h5>
                 <p class="card-text">Просмотр и редактирование всех зарегистрированных пользователей.</p>
                 <a href="{% url 'user_list' %}" class="btn btn-primary">Перейти</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title">Заезды</h5>
+                <p class="card-text">Просмотр, редактирование и создание заездов.</p>
+                <a href="{% url 'arrival_list' %}" class="btn btn-primary">Перейти</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title">Цены</h5>
+                <p class="card-text">Просмотр, редактирование и создание цен для путевок.</p>
+                <a href="{% url 'rate_list' %}" class="btn btn-primary">Перейти</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title">Планировка</h5>
+                <p class="card-text">Просмотр, редактирование и создание номеров пансионата.</p>
+                <a href="{% url 'room_layout_list' %}" class="btn btn-primary">Перейти</a>
             </div>
         </div>
     </div>

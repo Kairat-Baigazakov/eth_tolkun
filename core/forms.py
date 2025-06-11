@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
+from .models import Arrival, Rate, RoomLayout
 
 
 User = get_user_model()
@@ -38,3 +39,32 @@ class UserEditForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'email', 'role', 'is_active']
+
+
+class ArrivalForm(forms.ModelForm):
+    class Meta:
+        model = Arrival
+        fields = [
+            'name', 'status', 'start_date', 'end_date',
+            'application_start', 'application_end', 'rate'
+        ]
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'application_start': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'application_end': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+
+
+class RateForm(forms.ModelForm):
+    class Meta:
+        model = Rate
+        fields = ['name', 'price', 'vat', 'building_type', 'room_layout']
+
+
+class RoomLayoutForm(forms.ModelForm):
+    class Meta:
+        model = RoomLayout
+        fields = ['name', 'capacity', 'floor', 'building_type']
+
+
