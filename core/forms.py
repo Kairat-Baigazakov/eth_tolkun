@@ -85,9 +85,12 @@ class ApplicationForm(forms.ModelForm):
 class RelativeForm(forms.ModelForm):
     class Meta:
         model = Relative
-        fields = ['user', 'last_name', 'first_name', 'patronymic', 'relation', 'date_of_birth', 'is_employee_child']
+        fields = [
+            'user', 'last_name', 'first_name', 'patronymic',
+            'relation', 'birthdate', 'is_employee_child'
+        ]
         widgets = {
-            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'birthdate': forms.DateInput(attrs={'type': 'date'}),
         }
 
 
