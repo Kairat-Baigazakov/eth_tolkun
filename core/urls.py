@@ -18,7 +18,12 @@ from .views import (
     rate_edit,
     room_layout_list,
     room_layout_create,
-    room_layout_edit
+    room_layout_edit,
+    user_application_list,
+    user_application_create,
+    relatives_list,
+    relative_create,
+    relative_edit
 )
 
 urlpatterns = [
@@ -34,6 +39,10 @@ urlpatterns = [
     path('dashboard/admin/users/', user_list, name='user_list'),
     path('users/<int:user_id>/edit/', user_edit, name='user_edit'),
 
+    path('dashboard/admin/relatives/', relatives_list, name='relatives_list'),
+    path('dashboard/admin/relatives/create/', relative_create, name='relative_create'),
+    path('dashboard/admin/relatives/<int:relative_id>/edit/', relative_edit, name='relative_edit'),
+
     path('dashboard/admin/rates/', rate_list, name='rate_list'),
     path('dashboard/admin/rates/create/', rate_create, name='rate_create'),
     path('dashboard/admin/rates/<int:rate_id>/edit/', rate_edit, name='rate_edit'),
@@ -45,6 +54,9 @@ urlpatterns = [
     path('dashboard/arrivals/', arrival_list, name='arrival_list'),
     path('dashboard/arrivals/create/', arrival_create, name='arrival_create'),
     path('dashboard/arrivals/<int:arrival_id>/edit/', arrival_edit, name='arrival_edit'),
+
+    path('dashboard/user/applications/', user_application_list, name='user_applications_list'),
+    path('dashboard/user/applications/create/', user_application_create, name='user_application_create'),
 
     path('change-password/', auth_views.PasswordChangeView.as_view(
         template_name='account/change_password.html',

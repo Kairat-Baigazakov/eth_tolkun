@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Мои заявки{% endblock %}
+
+{% block content %}
+<h3 class="mb-4">Мои заявки</h3>
+
+<div class="mb-3 text-end">
+    <a href="{% url 'user_application_create' %}" class="btn btn-primary">Подать новую заявку</a>
+</div>
+
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark text-center">
+        <tr>
+            <th>#</th>
+            <th>Дата создания</th>
+            <th>Заезд</th>
+            <th>Отдыхающие</th>
+            <th>Комнаты</th>
+            <th>Статус</th>
+            <th>Оплата</th>
+            <th>Документ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for app in applications %}
+        <tr>
+            <td>{{ app.id }}</td>
+            <td>{{ app.created_at|date:"d.m.Y H:i" }}</td>
+            <td>{{ app.arrival.name }}</td>
+            <td>{{ app.guests|linebreaksbr }}</td>
+            <td>{{ app.rooms }}</td>
+            <td>
+                {% if app.status == "new" %}
+                    <span class="badge bg-secondary">Новая</span>
+                {% elif app.status == "sent" %}
+                    <span class="badge bg-info text-dark">Отправлена</span>
+                {% elif app.status == "approved" %}
+                    <span class="badge bg-success">Одобрена</span>
+                {% elif app.status == "rejected" %}
+                    <span class="badge bg-danger">Отклонена</span>
+                {% elif app.status == "cancelled" %}
+                    <span class="badge bg-warning text-dark">Отменена</span>
+                {% else %}
+                    <span class="badge bg-light text-dark">{{ app.status }}</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if app.payment_status == "unpaid" %}
+                    <span class="badge bg-danger">Не оплачена</span>
+                {% elif app.payment_status == "pending" %}
+                    <span class="badge bg-warning text-dark">Ожидает оплаты</span>
+                {% elif app.payment_status == "paid" %}
+                    <span class="badge bg-success">Оплачена</span>
+                {% else %}
+                    <span class="badge bg-light text-dark">{{ app.payment_status }}</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if app.document %}
+                    <a href="{{ app.document.url }}" target="_blank">Документ</a>
+                {% else %}
+                    <span class="text-muted">Нет</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="8" class="text-center">Заявки не найдены.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

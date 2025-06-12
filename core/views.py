@@ -5,11 +5,12 @@ from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .models import Arrival, Rate, RoomLayout
-from .forms import LoginForm, UserCreationForm, UserEditForm, ArrivalForm, RateForm, RoomLayoutForm
+from .models import Arrival, Rate, RoomLayout, Application, Relative
+from .forms import LoginForm, UserCreationForm, UserEditForm, ArrivalForm, RateForm, RoomLayoutForm, ApplicationForm, RelativeForm
 
 
 User = get_user_model()
+
 
 # Вход и Выход  --------------------------------------------------------------------------------------------------------------------------------------------------
 class CustomLoginView(LoginView):
@@ -57,7 +58,7 @@ def user_create(request):
             return redirect('admin_dashboard')
     else:
         form = UserCreationForm()
-    return render(request, 'user/user_create.html', {'form': form})
+    return render(request, 'admin/user/user_create.html', {'form': form})
 
 
 @login_required
@@ -77,7 +78,7 @@ def user_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'user/user_list.html', {
+    return render(request, 'admin/user/user_list.html', {
         'page_obj': page_obj,
         'query': query,
         'role_filter': role_filter
@@ -97,7 +98,7 @@ def user_edit(request, user_id):
     else:
         form = UserEditForm(instance=user)
 
-    return render(request, 'user/user_edit.html', {
+    return render(request, 'admin/user/user_edit.html', {
         'form': form,
         'user': user,
     })
@@ -151,9 +152,10 @@ def arrival_edit(request, arrival_id):
             return redirect('arrival_list')
     else:
         form = ArrivalForm(instance=arrival)
-    return render(request, 'arrivals/arrival_edit.html', {'form': form, 'arrival': arrival})
+    return render(request, 'arrivals/arrival_form.html', {'form': form, 'arrival': arrival})
 
 # ПЛАНИРОВКА --------------------------------------------------------------------------------------------------------------------------------------------------
+@login_required
 @user_passes_test(admin_check)
 def room_layout_list(request):
     query = request.GET.get("q", "")
@@ -165,9 +167,10 @@ def room_layout_list(request):
             Q(building_type__icontains=query)
         )
 
-    return render(request, "room_layout/list.html", {"room_layouts": room_layouts, "query": query})
+    return render(request, "admin/room_layout/room_list.html", {"room_layouts": room_layouts, "query": query})
 
 
+@login_required
 @user_passes_test(admin_check)
 def room_layout_create(request):
     if request.method == "POST":
@@ -177,9 +180,10 @@ def room_layout_create(request):
             return redirect("room_layout_list")
     else:
         form = RoomLayoutForm()
-    return render(request, "room_layout/form.html", {"form": form, "title": "Создание планировки"})
+    return render(request, "admin/room_layout/room_form.html", {"form": form, "title": "Создание планировки"})
 
 
+@login_required
 @user_passes_test(admin_check)
 def room_layout_edit(request, pk):
     layout = get_object_or_404(RoomLayout, pk=pk)
@@ -190,7 +194,7 @@ def room_layout_edit(request, pk):
             return redirect("room_layout_list")
     else:
         form = RoomLayoutForm(instance=layout)
-    return render(request, "room_layout/form.html", {"form": form, "title": "Редактирование планировки"})
+    return render(request, "admin/room_layout/room_form.html", {"form": form, "title": "Редактирование планировки"})
 
 # ЦЕНЫ --------------------------------------------------------------------------------------------------------------------------------------------------
 @login_required
@@ -212,7 +216,7 @@ def rate_list(request):
     room_layouts = RoomLayout.objects.all()
     building_types = Rate.objects.values_list('building_type', flat=True).distinct()
 
-    return render(request, 'rates/rate_list.html', {
+    return render(request, 'admin/rates/rate_list.html', {
         'rates': rates,
         'query': query,
         'building_type_filter': building_type_filter,
@@ -229,7 +233,7 @@ def rate_create(request):
     if form.is_valid():
         form.save()
         return redirect('rate_list')
-    return render(request, 'rates/rate_form.html', {'form': form})
+    return render(request, 'admin/rates/rate_form.html', {'form': form, "title": "Создание тарифа"})
 
 
 @login_required
@@ -240,7 +244,83 @@ def rate_edit(request, pk):
     if form.is_valid():
         form.save()
         return redirect('rate_list')
-    return render(request, 'rates/rate_form.html', {'form': form})
+    return render(request, 'admin/rates/rate_form.html', {'form': form, "title": "Редактирование тарифа"})
+
+
+# Заявки  --------------------------------------------------------------------------------------------------------------------------------------------------
+@login_required
+def user_application_list(request):
+    applications = Application.objects.filter(author=request.user).order_by('-created_at')
+    return render(request, 'user/applications_list.html', {
+        'applications': applications,
+    })
+
+
+@login_required
+def user_application_create(request):
+    user = request.user
+    user_quota = request.user.total_quota
+    relatives = user.relatives.all()  # через ManyToMany
+
+    if request.method == 'POST':
+        # Тут понадобится кастомная обработка, потому что отдыхающих ты получаешь из JS формы
+        form = ApplicationForm(request.POST, request.FILES)
+        guests_data = request.POST.get('guests_json')
+        if form.is_valid() and guests_data:
+            application = form.save(commit=False)
+            application.author = user
+            application.guests = guests_data  # JSON строка
+            application.save()
+            return redirect('user_applications_list')
+    else:
+        form = ApplicationForm()
+
+    return render(request, 'user/application_form.html', {
+        'form': form,
+        'relatives': relatives,
+        'author': user,
+        'user_quota': user_quota,
+    })
+
+
+# Родственники  --------------------------------------------------------------------------------------------------------------------------------------------------
+@login_required
+@user_passes_test(admin_check)
+def relatives_list(request):
+    relatives = Relative.objects.select_related('user').all().order_by('user__last_name', 'last_name')
+    return render(request, 'admin/relatives/relatives_list.html', {'relatives': relatives})
+
+
+@login_required
+@user_passes_test(admin_check)
+def relative_create(request):
+    # тут должна быть ваша форма RelativeForm
+    from .forms import RelativeForm
+    if request.method == "POST":
+        form = RelativeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('relatives_list')
+    else:
+        form = RelativeForm()
+    return render(request, 'admin/relatives/relative_form.html', {'form': form, 'title': 'Добавить родственника'})
+
+
+@login_required
+@user_passes_test(admin_check)
+def relative_edit(request, relative_id):
+    from .forms import RelativeForm
+    relative = get_object_or_404(Relative, id=relative_id)
+    if request.method == "POST":
+        form = RelativeForm(request.POST, instance=relative)
+        if form.is_valid():
+            form.save()
+            return redirect('relatives_list')
+    else:
+        form = RelativeForm(instance=relative)
+    return render(request, 'admin/relatives/relative_form.html', {'form': form, 'title': 'Редактировать родственника'})
+
+
 
 # Дашбоарды  --------------------------------------------------------------------------------------------------------------------------------------------------
 @login_required

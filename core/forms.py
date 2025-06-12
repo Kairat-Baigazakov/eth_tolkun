@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
-from .models import Arrival, Rate, RoomLayout
+from .models import Arrival, Rate, RoomLayout, Application, Relative
 
 
 User = get_user_model()
@@ -66,5 +66,28 @@ class RoomLayoutForm(forms.ModelForm):
     class Meta:
         model = RoomLayout
         fields = ['name', 'capacity', 'floor', 'building_type']
+
+
+class ApplicationForm(forms.ModelForm):
+    class Meta:
+        model = Application
+        fields = [
+            'arrival',         # Выбор заезда
+            'guests',          # Список отдыхающих (текстовое поле)
+            'rooms',           # Комнаты (текстовое поле)
+            'document',        # Файл
+        ]
+        widgets = {
+            'guests': forms.CharField(widget=forms.HiddenInput),
+        }
+
+
+class RelativeForm(forms.ModelForm):
+    class Meta:
+        model = Relative
+        fields = ['user', 'last_name', 'first_name', 'patronymic', 'relation', 'date_of_birth', 'is_employee_child']
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+        }
 
 
