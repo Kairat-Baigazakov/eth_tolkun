@@ -20,7 +20,7 @@ class User(AbstractUser):
 
     @property
     def total_quota(self):
-        return self.quota + self.relatives.filter(is_employee_child=True).count()
+        return self.quota + self.relative_set.filter(is_employee_child=True).count()
 
 
 class Relative(models.Model):

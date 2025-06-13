@@ -8,34 +8,44 @@
 </div>
 <table class="table table-bordered table-hover align-middle">
     <thead class="table-dark text-center">
-        <tr>
-            <th>Фамилия</th>
-            <th>Имя</th>
-            <th>Отчество</th>
-            <th>Родственные отношения</th>
-            <th>Пользователь</th>
-            <th>Дата рождения</th>
-            <th>Действие</th>
-        </tr>
+    <tr>
+        <th>Фамилия</th>
+        <th>Имя</th>
+        <th>Отчество</th>
+        <th>Родственные отношения</th>
+        <th>Пользователь</th>
+        <th>Дата рождения</th>
+        <th>Является ребенком сотрудника</th>
+        <th>Действие</th>
+    </tr>
     </thead>
     <tbody>
-        {% for rel in relatives %}
-        <tr>
-            <td>{{ rel.last_name }}</td>
-            <td>{{ rel.first_name }}</td>
-            <td>{{ rel.patronymic }}</td>
-            <td>{{ rel.relation }}</td>
-            <td>{{ rel.user.last_name }} {{ rel.user.first_name }}</td>
-            <td>{{ rel.date_of_birth|date:'d.m.Y' }}</td>
-            <td class="text-center">
-                <a href="{% url 'relative_edit' rel.id %}" class="btn btn-sm btn-outline-primary">Редактировать</a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="7" class="text-center">Нет данных о родственниках.</td>
-        </tr>
-        {% endfor %}
+    {% for rel in relatives %}
+    <tr>
+        <td>{{ rel.last_name }}</td>
+        <td>{{ rel.first_name }}</td>
+        <td>{{ rel.patronymic }}</td>
+        <td>{{ rel.relation }}</td>
+        <td>
+            {{ rel.user.last_name }} {{ rel.user.first_name }} {% if rel.user.patronymic %}{{ rel.user.patronymic }}{% endif %}
+        </td>
+        <td>{{ rel.birthdate|date:"d.m.Y" }}</td>
+        <td class="text-center">
+            {% if rel.is_employee_child %}
+            <span class="badge bg-success">Да</span>
+            {% else %}
+            <span class="badge bg-secondary">Нет</span>
+            {% endif %}
+        </td>
+        <td class="text-center">
+            <a href="{% url 'relative_edit' rel.id %}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="8" class="text-center">Нет данных о родственниках.</td>
+    </tr>
+    {% endfor %}
     </tbody>
 </table>
 {% endblock %}

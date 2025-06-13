@@ -1,13 +1,15 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.views import LoginView
+from django.contrib import messages
 from django.urls import reverse_lazy
 from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Arrival, Rate, RoomLayout, Application, Relative
 from .forms import LoginForm, UserCreationForm, UserEditForm, ArrivalForm, RateForm, RoomLayoutForm, ApplicationForm, RelativeForm
-
+from django.core.serializers.json import DjangoJSONEncoder
 
 User = get_user_model()
 
@@ -259,27 +261,49 @@ def user_application_list(request):
 @login_required
 def user_application_create(request):
     user = request.user
-    user_quota = request.user.total_quota
-    relatives = user.relatives.all()  # через ManyToMany
+    user_quota = user.total_quota
+    relatives = Relative.objects.filter(user=user)  # <-- ForeignKey!
+
+    # Для JS — relatives как список словарей
+    relatives_list = [
+        {
+            "id": r.id,
+            "last_name": r.last_name,
+            "first_name": r.first_name,
+            "patronymic": r.patronymic,
+            "birthdate": r.birthdate.strftime("%Y-%m-%d") if r.birthdate else "",
+            "relation": r.relation,
+        } for r in relatives
+    ]
+    # Для JS — user
+    user_data = {
+        "id": user.id,
+        "last_name": user.last_name or "",
+        "first_name": user.first_name or "",
+        "patronymic": user.patronymic or "",
+        "birthdate": user.birthdate.strftime("%Y-%m-%d") if user.birthdate else "",
+        "relation": "Сотрудник",
+    }
 
     if request.method == 'POST':
-        # Тут понадобится кастомная обработка, потому что отдыхающих ты получаешь из JS формы
         form = ApplicationForm(request.POST, request.FILES)
-        guests_data = request.POST.get('guests_json')
-        if form.is_valid() and guests_data:
+        if form.is_valid():
             application = form.save(commit=False)
             application.author = user
-            application.guests = guests_data  # JSON строка
             application.save()
-            return redirect('user_applications_list')
+            messages.success(request, "Заявка успешно отправлена!")
+            return redirect('user_dashboard')
+        else:
+            print("Форма невалидна", form.errors)
     else:
         form = ApplicationForm()
 
     return render(request, 'user/application_form.html', {
         'form': form,
-        'relatives': relatives,
-        'author': user,
         'user_quota': user_quota,
+        'user_data': json.dumps(user_data, cls=DjangoJSONEncoder),
+        'relatives_data': json.dumps(relatives_list, cls=DjangoJSONEncoder),
+        'relatives': relatives,
     })
 
 
@@ -287,7 +311,7 @@ def user_application_create(request):
 @login_required
 @user_passes_test(admin_check)
 def relatives_list(request):
-    relatives = Relative.objects.select_related('user').all().order_by('user__last_name', 'last_name')
+    relatives = Relative.objects.select_related('user').all()
     return render(request, 'admin/relatives/relatives_list.html', {'relatives': relatives})
 
 

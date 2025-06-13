@@ -13,12 +13,28 @@ class LoginForm(AuthenticationForm):
 
 
 class UserCreationForm(forms.ModelForm):
-    password1 = forms.CharField(label='Пароль', widget=forms.PasswordInput)
-    password2 = forms.CharField(label='Подтвердите пароль', widget=forms.PasswordInput)
+    password1 = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    password2 = forms.CharField(label='Подтвердите пароль', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    birthdate = forms.DateField(
+        label='Дата рождения', required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'role')
+        fields = [
+            'username', 'email', 'last_name', 'first_name', 'patronymic',
+            'position', 'birthdate', 'role'
+        ]
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'patronymic': forms.TextInput(attrs={'class': 'form-control'}),
+            'position': forms.TextInput(attrs={'class': 'form-control'}),
+            'role': forms.Select(attrs={'class': 'form-select'}),
+        }
 
     def clean_password2(self):
         p1 = self.cleaned_data.get('password1')
@@ -34,14 +50,52 @@ class UserCreationForm(forms.ModelForm):
             user.save()
         return user
 
-
 class UserEditForm(forms.ModelForm):
+    birthdate = forms.DateField(
+        label='Дата рождения', required=False,
+        widget=forms.DateInput(
+            attrs={'type': 'date', 'class': 'form-control'},
+            format='%Y-%m-%d'
+        )
+    )
     class Meta:
         model = User
-        fields = ['username', 'email', 'role', 'is_active']
+        fields = [
+            'username', 'email', 'last_name', 'first_name', 'patronymic',
+            'position', 'birthdate', 'role', 'is_active'
+        ]
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'patronymic': forms.TextInput(attrs={'class': 'form-control'}),
+            'position': forms.TextInput(attrs={'class': 'form-control'}),
+            'role': forms.Select(attrs={'class': 'form-select'}),
+        }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Эта строка — гарантирует что дата будет в ISO формате
+        if self.instance and self.instance.birthdate:
+            self.fields['birthdate'].initial = self.instance.birthdate.strftime('%Y-%m-%d')
 
 
 class ArrivalForm(forms.ModelForm):
+
+    application_start = forms.DateTimeField(
+        widget=forms.DateTimeInput(
+            attrs={'type': 'datetime-local', 'class': 'form-control'},
+            format='%Y-%m-%dT%H:%M'
+        )
+    )
+
+    application_end = forms.DateTimeField(
+        widget=forms.DateTimeInput(
+            attrs={'type': 'datetime-local', 'class': 'form-control'},
+            format='%Y-%m-%dT%H:%M'
+        )
+    )
+
     class Meta:
         model = Arrival
         fields = [
@@ -54,6 +108,12 @@ class ArrivalForm(forms.ModelForm):
             'application_start': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'application_end': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for f in ['application_start', 'application_end']:
+            if self.instance and getattr(self.instance, f):
+                self.fields[f].initial = getattr(self.instance, f).strftime('%Y-%m-%dT%H:%M')
 
 
 class RateForm(forms.ModelForm):
@@ -69,6 +129,7 @@ class RoomLayoutForm(forms.ModelForm):
 
 
 class ApplicationForm(forms.ModelForm):
+    guests = forms.CharField(widget=forms.HiddenInput)
     class Meta:
         model = Application
         fields = [
@@ -77,12 +138,18 @@ class ApplicationForm(forms.ModelForm):
             'rooms',           # Комнаты (текстовое поле)
             'document',        # Файл
         ]
-        widgets = {
-            'guests': forms.CharField(widget=forms.HiddenInput),
-        }
 
 
 class RelativeForm(forms.ModelForm):
+    birthdate = forms.DateField(
+        label='Дата рождения',
+        widget=forms.DateInput(
+            attrs={'type': 'date', 'class': 'form-control'},
+            format='%Y-%m-%d'
+        ),
+        required=True
+    )
+
     class Meta:
         model = Relative
         fields = [
@@ -90,7 +157,18 @@ class RelativeForm(forms.ModelForm):
             'relation', 'birthdate', 'is_employee_child'
         ]
         widgets = {
-            'birthdate': forms.DateInput(attrs={'type': 'date'}),
+            'user': forms.Select(attrs={'class': 'form-select'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'patronymic': forms.TextInput(attrs={'class': 'form-control'}),
+            'relation': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_employee_child': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Гарантируем, что дата рождения корректно выводится для редактирования
+        if self.instance and self.instance.birthdate:
+            self.fields['birthdate'].initial = self.instance.birthdate.strftime('%Y-%m-%d')
 
 

@@ -1,9 +1,7 @@
 {% extends 'base.html' %}
 {% load widget_tweaks %}
 {% load static %}
-
 {% block title %}Создать заявку{% endblock %}
-
 {% block content %}
 <h2 class="mb-4">Создать заявку</h2>
 <form method="post" enctype="multipart/form-data">
@@ -20,13 +18,9 @@
     <div class="row mb-3">
         <div class="col-md-4">
             <select class="form-select" id="guest-type-select">
-                <option value="user_{{ user.id }}">Сотрудник: {{ user.last_name }} {{ user.first_name }} {{
-                    user.patronymic }}
-                </option>
+                <option value="user_{{ user.id }}">Сотрудник: {{ user.last_name }} {{ user.first_name }} {{ user.patronymic }} </option>
                 {% for rel in relatives %}
-                <option value="relative_{{ rel.id }}">{{ rel.relationship }}: {{ rel.last_name }} {{ rel.first_name }}
-                    {{ rel.patronymic }}
-                </option>
+                <option value="relative_{{ rel.id }}">{{ rel.relation }}: {{ rel.last_name }} {{ rel.first_name }} {{ rel.patronymic }} </option>
                 {% endfor %}
                 <option value="manual">Ввести вручную</option>
             </select>
@@ -49,6 +43,8 @@
         {% endif %}
     </div>
 
+    <input type="hidden" name="guests" id="id_guests">
+
     <div class="d-flex justify-content-between">
         <a href="{% url 'user_applications_list' %}" class="btn btn-secondary">Назад</a>
         <button type="submit" class="btn btn-primary">Отправить заявку</button>
@@ -61,7 +57,7 @@
         last_name: "{{ user.last_name|escapejs }}",
         first_name: "{{ user.first_name|escapejs }}",
         patronymic: "{{ user.patronymic|default:''|escapejs }}",
-        date_of_birth: "{{ user.date_of_birth|default:''|escapejs }}"
+        birthdate: "{{ user.birthdate|default:''|escapejs }}"
     };
     window.userQuota = {{ user_quota }};
     window.relatives = [
@@ -71,7 +67,7 @@
             last_name: "{{ rel.last_name|escapejs }}",
             first_name: "{{ rel.first_name|escapejs }}",
             patronymic: "{{ rel.patronymic|default:''|escapejs }}",
-            date_of_birth: "{{ rel.date_of_birth|escapejs }}",
+            birthdate: "{{ rel.birthdate|escapejs }}",
             relationship: "{{ rel.relation|escapejs }}"
         }{% if not forloop.last %},{% endif %}
         {% endfor %}

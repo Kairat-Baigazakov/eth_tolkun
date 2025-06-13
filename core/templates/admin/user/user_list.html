@@ -25,46 +25,60 @@
 
 <table class="table table-hover table-bordered align-middle">
     <thead class="table-dark text-center">
-        <tr>
-            <th>Логин</th>
-            <th>Email</th>
-            <th>Роль</th>
-            <th>Статус</th>
-            <th>Действие</th>
-        </tr>
+    <tr>
+        <th>Логин</th>
+        <th>Email</th>
+        <th>Фамилия</th>
+        <th>Имя</th>
+        <th>Отчество</th>
+        <th>Должность</th>
+        <th>Дата рождения</th>
+        <th>Роль</th>
+        <th>Статус</th>
+        <th>Действие</th>
+    </tr>
     </thead>
     <tbody>
-        {% for user in page_obj %}
-        <tr>
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>
-                {% if user.role == 'admin' %}
-                    <span class="badge bg-danger">Админ</span>
-                {% elif user.role == 'moderator' %}
-                    <span class="badge bg-warning text-dark">Модератор</span>
-                {% else %}
-                    <span class="badge bg-secondary">Пользователь</span>
-                {% endif %}
-            </td>
-            <td class="text-center">
-                {% if user.is_active %}
-                    <span class="badge bg-success">Активен</span>
-                {% else %}
-                    <span class="badge bg-secondary">Отключен</span>
-                {% endif %}
-            </td>
-            <td class="text-center">
-                <a href="{% url 'user_edit' user.id %}" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-pencil-square"></i> Редактировать
-                </a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5" class="text-center">Пользователи не найдены.</td>
-        </tr>
-        {% endfor %}
+    {% for user in page_obj %}
+    <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.last_name }}</td>
+        <td>{{ user.first_name }}</td>
+        <td>{{ user.patronymic }}</td>
+        <td>{{ user.position }}</td>
+        <td>
+            {% if user.birthdate %}
+                {{ user.birthdate|date:"d.m.Y" }}
+            {% endif %}
+        </td>
+        <td>
+            {% if user.role == 'admin' %}
+                <span class="badge bg-danger">Админ</span>
+            {% elif user.role == 'moderator' %}
+                <span class="badge bg-warning text-dark">Модератор</span>
+            {% else %}
+                <span class="badge bg-secondary">Пользователь</span>
+            {% endif %}
+        </td>
+        <td class="text-center">
+            {% if user.is_active %}
+                <span class="badge bg-success">Активен</span>
+            {% else %}
+                <span class="badge bg-secondary">Отключен</span>
+            {% endif %}
+        </td>
+        <td class="text-center">
+            <a href="{% url 'user_edit' user.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil-square"></i> Редактировать
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="10" class="text-center">Пользователи не найдены.</td>
+    </tr>
+    {% endfor %}
     </tbody>
 </table>
 
