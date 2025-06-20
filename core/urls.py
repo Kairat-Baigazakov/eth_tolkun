@@ -21,6 +21,10 @@ from .views import (
     room_layout_edit,
     user_application_list,
     user_application_create,
+    user_application_edit,
+    send_application,
+    delete_application,
+    revoke_application,
     relatives_list,
     relative_create,
     relative_edit
@@ -57,6 +61,10 @@ urlpatterns = [
 
     path('dashboard/user/applications/', user_application_list, name='user_applications_list'),
     path('dashboard/user/applications/create/', user_application_create, name='user_application_create'),
+    path('applications/send/<int:app_id>/', send_application, name='send_application'),
+    path('applications/delete/<int:app_id>/', delete_application, name='delete_application'),
+    path('applications/revoke/<int:app_id>/', revoke_application, name='revoke_application'),
+    path('applications/<int:app_id>/edit/', user_application_edit, name='user_application_edit'),
 
     path('change-password/', auth_views.PasswordChangeView.as_view(
         template_name='account/change_password.html',

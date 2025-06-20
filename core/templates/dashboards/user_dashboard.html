@@ -4,6 +4,6 @@
 
 {% block content %}
     <p>Добро пожаловать, {{ request.user.username }}!</p>
-<a href="{% url 'user_application_create' %}" class="btn btn-primary">Подать заявку</a>
+<a href="{% url 'user_application_create' %}" class="btn btn-primary">Создать заявку</a>
 <a href="{% url 'user_applications_list' %}" class="btn btn-outline-primary">Мои заявки</a>
 {% endblock %}

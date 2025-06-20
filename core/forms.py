@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from .models import Arrival, Rate, RoomLayout, Application, Relative
-
+import json
 
 User = get_user_model()
 
@@ -138,6 +138,21 @@ class ApplicationForm(forms.ModelForm):
             'rooms',           # Комнаты (текстовое поле)
             'document',        # Файл
         ]
+    def clean(self):
+        cleaned_data = super().clean()
+        guests_raw = cleaned_data.get('guests', '[]')
+        try:
+            guests = json.loads(guests_raw)
+            льготных = [g for g in guests if g.get('quota_type') == 'Льготная квота']
+            # Доступную квоту лучше передавать снаружи (например, через __init__)
+            max_lgot = getattr(self, 'max_lgot_quota', None)
+            if max_lgot is not None and len(льготных) > max_lgot:
+                raise forms.ValidationError(
+                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {max_lgot}."
+                )
+        except Exception:
+            raise forms.ValidationError("Ошибка в списке отдыхающих.")
+        return cleaned_data
 
 
 class RelativeForm(forms.ModelForm):
@@ -172,3 +187,28 @@ class RelativeForm(forms.ModelForm):
             self.fields['birthdate'].initial = self.instance.birthdate.strftime('%Y-%m-%d')
 
 
+class ApplicationEditForm(forms.ModelForm):
+    guests = forms.CharField(widget=forms.HiddenInput)
+
+    class Meta:
+        model = Application
+        fields = [
+            'guests',
+            'document',
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        guests_raw = cleaned_data.get('guests', '[]')
+        try:
+            guests = json.loads(guests_raw)
+            льготных = [g for g in guests if g.get('quota_type') == 'Льготная квота']
+            # Доступную квоту лучше передавать снаружи (например, через __init__)
+            max_lgot = getattr(self, 'max_lgot_quota', None)
+            if max_lgot is not None and len(льготных) > max_lgot:
+                raise forms.ValidationError(
+                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {max_lgot}."
+                )
+        except Exception:
+            raise forms.ValidationError("Ошибка в списке отдыхающих.")
+        return cleaned_data

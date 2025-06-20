@@ -6,7 +6,7 @@
 <h3 class="mb-4">Мои заявки</h3>
 
 <div class="mb-3 text-end">
-    <a href="{% url 'user_application_create' %}" class="btn btn-primary">Подать новую заявку</a>
+    <a href="{% url 'user_application_create' %}" class="btn btn-primary">Создать новую заявку</a>
 </div>
 
 <table class="table table-bordered table-hover align-middle">
@@ -16,15 +16,23 @@
         <th>Дата создания</th>
         <th>Заезд</th>
         <th>Отдыхающие</th>
+        <th>Позиция</th>
         <th>Комнаты</th>
         <th>Статус</th>
         <th>Оплата</th>
         <th>Документ</th>
+        <th>Действие</th>
+        <th>Комментарий</th>
     </tr>
     </thead>
     <tbody>
     {% for app in applications %}
-    <tr>
+    <tr
+            data-app-id="{{ app.id }}"
+            data-app-status="{{ app.status }}"
+            data-app-start="{{ app.arrival.application_start|date:'Y-m-d\\TH:i:s' }}"
+            data-app-end="{{ app.arrival.application_end|date:'Y-m-d\\TH:i:s' }}"
+    >
         <td>{{ app.id }}</td>
         <td>{{ app.created_at|date:"d.m.Y H:i" }}</td>
         <td>{{ app.arrival.name }}</td>
@@ -32,6 +40,13 @@
             {% for g in app.guests|parse_guests %}
             {{ g }}<br>
             {% endfor %}
+        </td>
+        <td class="text-center">
+            {% if app.status == "sent" %}
+            {{ positions|get_item:app.id }}
+            {% else %}
+            <span class="text-muted">-</span>
+            {% endif %}
         </td>
         <td>{{ app.rooms }}</td>
         <td>
@@ -67,12 +82,78 @@
             <span class="text-muted">Нет</span>
             {% endif %}
         </td>
+        <td class="text-center">
+            <form method="post" action="{% url 'send_application' app.id %}" class="send-app-form"
+                  style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning btn-sm send-app-btn" style="display:none;"
+                        onclick="return confirm('Вы уверены, что хотите отправить эту заявку? После этого заявку нельзя будет изменить!');">
+                    Отправить заявку
+                </button>
+            </form>
+            {% if app.status == "new" or app.status == "revision" %}
+            <a href="{% url 'user_application_edit' app.id %}" class="btn btn-outline-primary btn-sm">
+                Редактировать
+            </a>
+            {% endif %}
+            {% if app.status == "sent" %}
+            <form method="post" action="{% url 'revoke_application' app.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('Вы уверены, что хотите отозвать эту заявку?');">
+                    Отозвать заявку
+                </button>
+            </form>
+            <span class="text-success">Отправлено</span>
+            {% elif app.status == "new" %}
+            <form method="post" action="{% url 'delete_application' app.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('Удалить заявку? Это действие необратимо.');">
+                    Удалить
+                </button>
+            </form>
+            {% elif app.status == "cancelled" %}
+            <span class="text-muted">Отозвана</span>
+            {% elif app.status != "new" %}
+            <span class="text-muted">-</span>
+            {% endif %}
+        </td>
+        <td>
+            {{ app.comment|default:"-" }}
+        </td>
     </tr>
     {% empty %}
     <tr>
-        <td colspan="8" class="text-center">Заявки не найдены.</td>
+        <td colspan="9" class="text-center">Заявки не найдены.</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('tr[data-app-id]').forEach(function(row) {
+            const status = row.dataset.appStatus;
+            const startStr = row.dataset.appStart;
+            const endStr = row.dataset.appEnd;
+            const btn = row.querySelector('.send-app-btn');
+            if (!btn) return;
+            function updateButton() {
+                const now = new Date();
+                const start = new Date(startStr.replace(' ', 'T'));
+                const end = new Date(endStr.replace(' ', 'T'));
+                if (status === "new" && now >= start && now <= end) {
+                    btn.style.display = "";
+                    btn.disabled = false;
+                } else {
+                    btn.style.display = "none";
+                }
+            }
+            updateButton();
+            setInterval(updateButton, 1000);
+        });
+    });
+</script>
+
 {% endblock %}

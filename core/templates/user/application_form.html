@@ -47,11 +47,13 @@
 
     <div class="d-flex justify-content-between">
         <a href="{% url 'user_applications_list' %}" class="btn btn-secondary">Назад</a>
-        <button type="submit" class="btn btn-primary">Отправить заявку</button>
+        <button type="submit" class="btn btn-primary">Создать заявку</button>
     </div>
 </form>
 
 <script>
+    window.maxGuests = {{ max_guests_this_app }};
+    window.initialGuests = {{ guests_json|safe }};
     window.userData = {
         id: {{ user.id }},
         last_name: "{{ user.last_name|escapejs }}",
@@ -72,6 +74,11 @@
         }{% if not forloop.last %},{% endif %}
         {% endfor %}
     ];
+    window.QUOTA_TYPES = {
+        user: ["Льготная квота", "50% квота", "Квота с полной стоимостью"],
+        manual: ["Льготная квота", "Квота с полной стоимостью"]
+    };
+    window.rates = {{ rates|safe }};
 </script>
 <script src="{% static 'core/js/application_form.js' %}"></script>
 {% endblock %}

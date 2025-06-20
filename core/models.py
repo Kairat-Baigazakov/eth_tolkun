@@ -1,5 +1,5 @@
 # core/models.py
-
+import json
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
@@ -11,6 +11,7 @@ class User(AbstractUser):
         ('moderator', 'Модератор'),
         ('user', 'Пользователь'),
     ]
+
     patronymic = models.CharField('Отчество', max_length=100, blank=True)
     birthdate = models.DateField('Дата рождения', null=True, blank=True)
     position = models.CharField('Должность', max_length=100, blank=True)
@@ -21,6 +22,26 @@ class User(AbstractUser):
     @property
     def total_quota(self):
         return self.quota + self.relative_set.filter(is_employee_child=True).count()
+
+    def get_active_applications(self, exclude_application=None):
+        active_statuses = ['new', 'sent', 'approved', 'revision']
+        qs = self.applications.filter(status__in=active_statuses)
+        if exclude_application:
+            qs = qs.exclude(id=exclude_application.id)
+        return qs
+
+    def get_used_quota(self, exclude_application=None):
+        used = 0
+        for app in self.get_active_applications(exclude_application=exclude_application):
+            try:
+                used += len(json.loads(app.guests or '[]'))
+            except Exception:
+                pass
+        return used
+
+    def get_free_quota(self, exclude_application=None):
+        return self.total_quota - self.get_used_quota(exclude_application=exclude_application)
+
 
 
 class Relative(models.Model):
@@ -93,6 +114,7 @@ class Application(models.Model):
         ('approved', 'Одобрена'),
         ('rejected', 'Отклонена'),
         ('cancelled', 'Отменена'),
+        ('revision', 'На доработке'),
     ]
     PAYMENT_STATUS_CHOICES = [
         ('unpaid', 'Не оплачена'),
@@ -112,6 +134,7 @@ class Application(models.Model):
     rooms = models.TextField(verbose_name="Комнаты отдыхающих", blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Статус заявки")
+    comment = models.TextField('Комментарий', blank=True)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid', verbose_name="Статус оплаты")
 
     document = models.FileField(upload_to='applications/docs/', blank=True, null=True, verbose_name="Прикрепленный документ")

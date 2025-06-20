@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+{% block title %}Редактировать заявку{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Редактировать заявку №{{ app.id }}</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="{{ form.arrival.id_for_label }}" class="form-label">Выберите заезд</label>
+        {{ form.arrival|add_class:"form-select" }}
+    </div>
+    <h5 class="mb-3">Список отдыхающих</h5>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select class="form-select" id="guest-type-select">
+                <option value="user_{{ app.author.id }}">Сотрудник: {{ app.author.last_name }} {{ app.author.first_name }} {{ app.author.patronymic }}
+                </option>
+                {% for rel in app.author.relative_set.all %}
+                <option value="relative_{{ rel.id }}">{{ rel.relation }}: {{ rel.last_name }} {{ rel.first_name }} {{ rel.patronymic }}
+                </option>
+                {% endfor %}
+                <option value="manual">Ввести вручную</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="button" class="btn btn-success" id="add-guest-btn">Добавить отдыхающего</button>
+            <span>
+                Осталось добавить: <span id="quota-counter"></span>
+            </span>
+        </div>
+    </div>
+
+    <div id="guests-list"></div>
+    <input type="hidden" name="guests" id="id_guests">
+
+    <div class="mb-3">
+        <label for="{{ form.document.id_for_label }}" class="form-label">
+            Документ (необязательно, загруженный:
+            {% if app.document %}
+            <a href="{{ app.document.url }}" target="_blank">Документ</a>
+            {% else %}
+            нет
+            {% endif %}
+            )
+        </label>
+        {{ form.document|add_class:"form-control" }}
+        {% if form.document.errors %}
+        <div class="text-danger">{{ form.document.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a href="{% url 'user_applications_list' %}" class="btn btn-secondary">Назад</a>
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    </div>
+</form>
+
+<script>
+    window.userData = {{ user_data|safe }};
+    window.relatives = {{ relatives_data|safe }};
+    window.maxGuests = {{ max_guests_this_app }};
+    window.initialGuests = {{ guests_json|safe }};
+    window.isEditMode = true;
+    window.rates = {{ rates|safe }};
+        window.QUOTA_TYPES = {
+        user: ["Льготная квота", "50% квота", "Квота с полной стоимостью"],
+        manual: ["Льготная квота", "Квота с полной стоимостью"]
+    };
+</script>
+<script src="{% static 'core/js/application_form.js' %}"></script>
+{% endblock %}

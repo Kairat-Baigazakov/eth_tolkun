@@ -18,3 +18,9 @@ def parse_guests(guests_json):
         bd = g.get('birthdate', '')
         result.append(f"{fio.strip()} ({rel}, {bd})")
     return result
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key, '-')
+

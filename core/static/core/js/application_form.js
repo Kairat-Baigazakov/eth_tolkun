@@ -1,46 +1,53 @@
 const userData = window.userData || {};
 const relatives = window.relatives || [];
-let guestIdx = 0;
-let currentQuota = window.userQuota || 0;
+const initialGuests = window.initialGuests || [];
+let guestIdx = initialGuests.length || 0;
+let maxGuests = window.maxGuests || 0;
+let currentGuestsCount = window.initialGuests ? window.initialGuests.length : 0;
 
 function updateQuotaDisplay() {
     const counter = document.getElementById("quota-counter");
+    const total = document.getElementById("quota-total");
+    if (counter) counter.textContent = Math.max(maxGuests - currentGuestsCount, 0);
+    if (total) total.textContent = maxGuests;
     const addBtn = document.getElementById("add-guest-btn");
-    counter.textContent = currentQuota;
-    if (currentQuota <= 0) {
-        addBtn.classList.remove('btn-success');
-        addBtn.classList.add('btn-secondary');
-        addBtn.disabled = true;
-    } else {
-        addBtn.classList.add('btn-success');
-        addBtn.classList.remove('btn-secondary');
-        addBtn.disabled = false;
+    if (addBtn) {
+        if (currentGuestsCount >= maxGuests) {
+            addBtn.classList.remove('btn-success');
+            addBtn.classList.add('btn-secondary');
+            addBtn.disabled = true;
+        } else {
+            addBtn.classList.add('btn-success');
+            addBtn.classList.remove('btn-secondary');
+            addBtn.disabled = false;
+        }
     }
 }
 
 function addGuestRow(source) {
-    if (currentQuota <= 0) return;
+    if (currentGuestsCount >= maxGuests) return;
     let data = {};
     let relationDisplay = '';
-
-    if (source.startsWith('user_')) {
+    if (typeof source === 'object') {
+        data = source;
+        relationDisplay = data.relationship || '';
+    } else if (source.startsWith('user_')) {
         data = userData;
         relationDisplay = 'Сотрудник';
     } else if (source.startsWith('relative_')) {
         const relId = parseInt(source.split('_')[1]);
         data = relatives.find(r => r.id === relId) || {};
-        relationDisplay = data.relationship  || '';
+        relationDisplay = data.relationship || '';
     } else {
         data = {};
         relationDisplay = 'Не родственник';
     }
-
     const isManual = source === 'manual';
     const idx = guestIdx++;
     const guestsList = document.getElementById("guests-list");
-
-    const birthdateValue = isManual ? '1998-03-04' : (data.birthdate && data.birthdate !== 'None' ? data.birthdate : '1998-03-04');
-
+    const birthdateValue =
+        isManual ? '1998-03-04'
+        : (data.birthdate && data.birthdate !== 'None' ? data.birthdate : '1998-03-04');
     const row = document.createElement('div');
     row.className = "guest-row row align-items-end mb-2";
     row.innerHTML = `
@@ -59,42 +66,66 @@ function addGuestRow(source) {
         <div class="col-md-2 mb-2 mb-md-0">
             <input type="text" class="form-control relationship-input" name="guests[${idx}][relationship]" value="${relationDisplay}" readonly>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 mb-2 mb-md-0">
+            <select class="form-select quota-type-select" name="guests[${idx}][quota_type]"></select>
+        </div>
+        <div class="col-md-1">
             <button type="button" class="btn btn-danger remove-guest-btn">✕</button>
         </div>
     `;
     guestsList.appendChild(row);
 
-    // Удалить строку
-    row.querySelector('.remove-guest-btn').addEventListener('click', function() {
-        row.remove();
-        currentQuota += 1;
-        updateQuotaDisplay();
+    let quotaTypes = [];
+    if (isManual) {
+        quotaTypes = window.QUOTA_TYPES ? window.QUOTA_TYPES.manual : ["Льготная квота", "Квота с полной стоимостью"];
+    } else {
+        quotaTypes = window.QUOTA_TYPES ? window.QUOTA_TYPES.user : ["Льготная квота", "50% квота", "Квота с полной стоимостью"];
+    }
+    const quotaSelect = row.querySelector('.quota-type-select');
+    quotaTypes.forEach(function(qt) {
+        const opt = document.createElement('option');
+        opt.value = qt;
+        opt.textContent = qt;
+        quotaSelect.appendChild(opt);
     });
 
-    currentQuota -= 1;
+    currentGuestsCount++;
     updateQuotaDisplay();
+
+    row.querySelector('.remove-guest-btn').addEventListener('click', function() {
+        row.remove();
+        currentGuestsCount--;
+        updateQuotaDisplay();
+    });
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("add-guest-btn").addEventListener('click', function () {
-        const select = document.getElementById('guest-type-select');
-        addGuestRow(select.value);
-    });
-    updateQuotaDisplay();
-});
-
-document.querySelector("form").addEventListener("submit", function(e) {
-    const rows = document.querySelectorAll("#guests-list .guest-row");
-    const guests = [];
-    rows.forEach(row => {
-        guests.push({
-            last_name: row.querySelector('.last-name-input').value,
-            first_name: row.querySelector('.first-name-input').value,
-            patronymic: row.querySelector('.patronymic-input').value,
-            birthdate: row.querySelector('.dob-input').value,
-            relationship: row.querySelector('.relationship-input').value
+    if (Array.isArray(initialGuests) && initialGuests.length > 0) {
+        initialGuests.forEach(addGuestRow);
+    }
+    const addBtn = document.getElementById("add-guest-btn");
+    if (addBtn) {
+        addBtn.addEventListener('click', function () {
+            const select = document.getElementById('guest-type-select');
+            addGuestRow(select.value);
         });
+    }
+
+    document.querySelector("form").addEventListener("submit", function(e) {
+        const rows = document.querySelectorAll("#guests-list .guest-row");
+        const guests = [];
+        rows.forEach(row => {
+            guests.push({
+                last_name: row.querySelector('.last-name-input').value,
+                first_name: row.querySelector('.first-name-input').value,
+                patronymic: row.querySelector('.patronymic-input').value,
+                birthdate: row.querySelector('.dob-input').value,
+                relationship: row.querySelector('.relationship-input').value,
+                quota_type: row.querySelector('.quota-type-select').value
+            });
+        });
+        document.getElementById("id_guests").value = JSON.stringify(guests);
     });
-    document.getElementById("id_guests").value = JSON.stringify(guests);
+
+    updateQuotaDisplay();
 });
