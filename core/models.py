@@ -34,7 +34,8 @@ class User(AbstractUser):
         used = 0
         for app in self.get_active_applications(exclude_application=exclude_application):
             try:
-                used += len(json.loads(app.guests or '[]'))
+                guests = json.loads(app.guests or '[]')
+                used += sum(1 for g in guests if g.get('quota_type') == 'Льготная квота')
             except Exception:
                 pass
         return used

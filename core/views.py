@@ -254,7 +254,27 @@ def rate_edit(request, pk):
 # Заявки  --------------------------------------------------------------------------------------------------------------------------------------------------
 @login_required
 def user_application_list(request):
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    year_filter = request.GET.get('year', '')
+
     applications = Application.objects.filter(author=request.user).order_by('-created_at')
+
+    if query:
+        applications = applications.filter(arrival__name__icontains=query)
+    if status_filter:
+        applications = applications.filter(status=status_filter)
+    if year_filter:
+        applications = applications.filter(created_at__year=year_filter)
+
+    # Список годов для фильтра (например, 2023, 2024)
+    years = applications.dates('created_at', 'year', order='DESC')
+    statuses = Application.STATUS_CHOICES
+
+    paginator = Paginator(applications, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     now = timezone.now()
 
     # Для каждой заявки определим ее позицию (по arrival)
@@ -274,6 +294,12 @@ def user_application_list(request):
         'applications': applications,
         'now': now,
         'positions': positions,  # Добавляем в шаблон
+        'page_obj': page_obj,
+        'query': query,
+        'status_filter': status_filter,
+        'year_filter': year_filter,
+        'years': years,
+        'statuses': statuses,
     })
 
 
@@ -281,7 +307,6 @@ def user_application_list(request):
 def user_application_create(request):
     user = request.user
     free_quota = user.get_free_quota()
-    max_guests_this_app = max(free_quota, 0)
     rates = list(Rate.objects.values('id', 'name'))
     relatives = Relative.objects.filter(user=user)
     relatives_list = [
@@ -305,7 +330,7 @@ def user_application_create(request):
 
     if request.method == 'POST':
         form = ApplicationForm(request.POST, request.FILES)
-        form.max_lgot_quota = user.get_free_quota()
+        form.free_quota = user.get_free_quota()
 
         try:
             guests = json.loads(request.POST.get('guests', '[]'))
@@ -315,9 +340,8 @@ def user_application_create(request):
                 messages.error(request,f"Вы указали {preferential_need} льготных квот, а доступно только {user.get_free_quota(exclude_application=None)}.")
                 return render(request, 'user/application_form.html', {
                     'form': form,
-                    'max_guests_this_app': max_guests_this_app,
                     'guests_json': '[]',
-                    'user_quota': free_quota,
+                    'free_quota': free_quota,
                     'user_data': json.dumps(user_data, cls=DjangoJSONEncoder),
                     'relatives_data': json.dumps(relatives_list, cls=DjangoJSONEncoder),
                     'relatives': relatives,
@@ -340,9 +364,8 @@ def user_application_create(request):
 
     return render(request, 'user/application_form.html', {
         'form': form,
-        'max_guests_this_app': max_guests_this_app,
         'guests_json': '[]',
-        'user_quota': free_quota,
+        'free_quota': free_quota,
         'user_data': json.dumps(user_data, cls=DjangoJSONEncoder),
         'relatives_data': json.dumps(relatives_list, cls=DjangoJSONEncoder),
         'relatives': relatives,
@@ -367,9 +390,7 @@ def send_application(request, app_id):
         messages.success(request, "Заявка успешно отправлена!")
         return redirect('user_applications_list')
 
-    # Если GET — можно показать страницу с подтверждением (но это необязательно)
     return redirect('user_applications_list')
-# САМ СЕБЕ НАПОМИНАЮ!!! Менять статус Оплаты сделаем так чтобы мог менять только Модер с Админом.
 
 
 @login_required
@@ -407,9 +428,9 @@ def user_application_edit(request, app_id):
     user = request.user
     guests_json = app.guests if app.guests else '[]'
     initial_guests = json.loads(guests_json)
-    initial_count = len(initial_guests)
-    free_quota = user.get_free_quota(exclude_application=app)
-    max_guests_this_app = max(initial_count + free_quota, initial_count)
+    # preferential_count = len([g for g in initial_guests if g.get('quota_type') == 'Льготная квота'])
+    free_quota = user.get_free_quota(exclude_application=app)# - preferential_count
+
     rates = list(Rate.objects.values('id', 'name'))
 
     relatives = Relative.objects.filter(user=user)
@@ -434,7 +455,7 @@ def user_application_edit(request, app_id):
 
     if request.method == 'POST':
         form = ApplicationEditForm(request.POST, request.FILES, instance=app)
-        form.max_lgot_quota = user.get_free_quota(exclude_application=app)
+        form.free_quota = user.get_free_quota(exclude_application=app)
 
         try:
             guests = json.loads(request.POST.get('guests', '[]'))
@@ -445,17 +466,17 @@ def user_application_edit(request, app_id):
                 return render(request, 'user/application_edit.html', {
                     'form': form,
                     'app': app,
+                    'free_quota': free_quota,
                     'guests_json': guests_json,
                     'user_data': json.dumps(user_data, cls=DjangoJSONEncoder),
                     'relatives_data': json.dumps(relatives_list, cls=DjangoJSONEncoder),
-                    'max_guests_this_app': max_guests_this_app,
                     'initialGuests': initial_guests,
                     'rates': rates,
                 })
         except Exception as ex:
             messages.error(request, "Ошибка проверки квот. Проверьте заполнение отдыхающих.")
             return render(request, ...)
-        
+
         if form.is_valid():
             form.save()
             messages.success(request, "Заявка успешно обновлена.")
@@ -466,11 +487,11 @@ def user_application_edit(request, app_id):
     return render(request, 'user/application_edit.html', {
         'form': form,
         'app': app,
+        'free_quota': free_quota,
         'guests_json': guests_json,
         'user_data': json.dumps(user_data, cls=DjangoJSONEncoder),
         'relatives_data': json.dumps(relatives_list, cls=DjangoJSONEncoder),
-        'max_guests_this_app': max_guests_this_app,
-        'initialGuests': initial_guests,
+        'initialGuests': json.dumps(initial_guests, cls=DjangoJSONEncoder),
         'rates': rates,
     })
 

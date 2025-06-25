@@ -4,6 +4,11 @@
 
 {% block content %}
     <p>Добро пожаловать, {{ request.user.username }}!</p>
+    <strong>
+        Доступное количество Льготных квот:
+        <span class="badge bg-success">{{ request.user.get_free_quota }}</span>
+    </strong>
+<br>
 <a href="{% url 'user_application_create' %}" class="btn btn-primary">Создать заявку</a>
 <a href="{% url 'user_applications_list' %}" class="btn btn-outline-primary">Мои заявки</a>
 {% endblock %}

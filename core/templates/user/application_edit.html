@@ -27,10 +27,14 @@
         </div>
         <div class="col-md-3">
             <button type="button" class="btn btn-success" id="add-guest-btn">Добавить отдыхающего</button>
-            <span>
-                Осталось добавить: <span id="quota-counter"></span>
-            </span>
         </div>
+    </div>
+
+    <!-- Информация о льготных квотах -->
+    <div class="mb-2">
+        <small class="text-muted">
+            Доступно льготных квот: <span id="preferential-quota-available">{{ free_quota }}</span>
+        </small>
     </div>
 
     <div id="guests-list"></div>
@@ -61,11 +65,11 @@
 <script>
     window.userData = {{ user_data|safe }};
     window.relatives = {{ relatives_data|safe }};
-    window.maxGuests = {{ max_guests_this_app }};
-    window.initialGuests = {{ guests_json|safe }};
+    window.initialGuests = {{ initialGuests|safe }};
     window.isEditMode = true;
     window.rates = {{ rates|safe }};
-        window.QUOTA_TYPES = {
+    window.free_quota = {{ free_quota }};
+    window.QUOTA_TYPES = {
         user: ["Льготная квота", "50% квота", "Квота с полной стоимостью"],
         manual: ["Льготная квота", "Квота с полной стоимостью"]
     };

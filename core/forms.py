@@ -143,12 +143,11 @@ class ApplicationForm(forms.ModelForm):
         guests_raw = cleaned_data.get('guests', '[]')
         try:
             guests = json.loads(guests_raw)
-            льготных = [g for g in guests if g.get('quota_type') == 'Льготная квота']
-            # Доступную квоту лучше передавать снаружи (например, через __init__)
-            max_lgot = getattr(self, 'max_lgot_quota', None)
-            if max_lgot is not None and len(льготных) > max_lgot:
+            preferential = [g for g in guests if g.get('quota_type') == 'Льготная квота']
+            free_quota = getattr(self, 'free_quota', None)
+            if free_quota is not None and len(preferential) > free_quota:
                 raise forms.ValidationError(
-                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {max_lgot}."
+                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {free_quota}."
                 )
         except Exception:
             raise forms.ValidationError("Ошибка в списке отдыхающих.")
@@ -202,12 +201,12 @@ class ApplicationEditForm(forms.ModelForm):
         guests_raw = cleaned_data.get('guests', '[]')
         try:
             guests = json.loads(guests_raw)
-            льготных = [g for g in guests if g.get('quota_type') == 'Льготная квота']
+            preferential = [g for g in guests if g.get('quota_type') == 'Льготная квота']
             # Доступную квоту лучше передавать снаружи (например, через __init__)
-            max_lgot = getattr(self, 'max_lgot_quota', None)
-            if max_lgot is not None and len(льготных) > max_lgot:
+            free_quota = getattr(self, 'free_quota', None)
+            if free_quota is not None and len(preferential) > free_quota:
                 raise forms.ValidationError(
-                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {max_lgot}."
+                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {free_quota}."
                 )
         except Exception:
             raise forms.ValidationError("Ошибка в списке отдыхающих.")

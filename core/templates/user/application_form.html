@@ -18,19 +18,24 @@
     <div class="row mb-3">
         <div class="col-md-4">
             <select class="form-select" id="guest-type-select">
-                <option value="user_{{ user.id }}">Сотрудник: {{ user.last_name }} {{ user.first_name }} {{ user.patronymic }} </option>
+                <option value="user_{{ user.id }}">Сотрудник: {{ user.last_name }} {{ user.first_name }} {{
+                    user.patronymic }}
+                </option>
                 {% for rel in relatives %}
-                <option value="relative_{{ rel.id }}">{{ rel.relation }}: {{ rel.last_name }} {{ rel.first_name }} {{ rel.patronymic }} </option>
+                <option value="relative_{{ rel.id }}">{{ rel.relation }}: {{ rel.last_name }} {{ rel.first_name }} {{
+                    rel.patronymic }}
+                </option>
                 {% endfor %}
                 <option value="manual">Ввести вручную</option>
             </select>
         </div>
         <div class="col-md-3">
             <button type="button" class="btn btn-success" id="add-guest-btn">Добавить отдыхающего</button>
-            <span>
-            Осталось добавить: <span id="quota-counter">{{ user_quota }}</span>
-            </span>
         </div>
+        <strong>
+            Доступное количество Льготных квот:
+            <span class="badge bg-success" id="preferential-quota-available">{{ free_quota }}</span>
+        </strong>
     </div>
 
     <div id="guests-list"></div>
@@ -46,13 +51,12 @@
     <input type="hidden" name="guests" id="id_guests">
 
     <div class="d-flex justify-content-between">
-        <a href="{% url 'user_applications_list' %}" class="btn btn-secondary">Назад</a>
+        <a href="{% url 'user_dashboard' %}" class="btn btn-secondary">Назад на главную страницу</a>
         <button type="submit" class="btn btn-primary">Создать заявку</button>
     </div>
 </form>
 
 <script>
-    window.maxGuests = {{ max_guests_this_app }};
     window.initialGuests = {{ guests_json|safe }};
     window.userData = {
         id: {{ user.id }},
@@ -61,7 +65,7 @@
         patronymic: "{{ user.patronymic|default:''|escapejs }}",
         birthdate: "{{ user.birthdate|default:''|escapejs }}"
     };
-    window.userQuota = {{ user_quota }};
+    window.free_quota = {{ free_quota }};
     window.relatives = [
         {% for rel in relatives %}
         {

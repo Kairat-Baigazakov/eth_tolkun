@@ -2,30 +2,31 @@ const userData = window.userData || {};
 const relatives = window.relatives || [];
 const initialGuests = window.initialGuests || [];
 let guestIdx = initialGuests.length || 0;
-let maxGuests = window.maxGuests || 0;
-let currentGuestsCount = window.initialGuests ? window.initialGuests.length : 0;
+const userQuota = window.free_quota || 0;
 
-function updateQuotaDisplay() {
-    const counter = document.getElementById("quota-counter");
-    const total = document.getElementById("quota-total");
-    if (counter) counter.textContent = Math.max(maxGuests - currentGuestsCount, 0);
-    if (total) total.textContent = maxGuests;
-    const addBtn = document.getElementById("add-guest-btn");
-    if (addBtn) {
-        if (currentGuestsCount >= maxGuests) {
-            addBtn.classList.remove('btn-success');
-            addBtn.classList.add('btn-secondary');
-            addBtn.disabled = true;
-        } else {
-            addBtn.classList.add('btn-success');
-            addBtn.classList.remove('btn-secondary');
-            addBtn.disabled = false;
-        }
+// Чтобы корректно работать при редактировании заявки:
+function countPreferentialGuests() {
+    const rows = document.querySelectorAll("#guests-list .guest-row");
+    let count = 0;
+    rows.forEach(row => {
+        const qt = row.querySelector('.quota-type-select').value;
+        if (qt === "Льготная квота") count += 1;
+    });
+    return count;
+}
+
+function updatePreferentialQuotaAvailable() {
+    const span = document.getElementById('preferential-quota-available');
+    if (span) {
+        const quotaLeft = Math.max(userQuota - countPreferentialGuests(), 0);
+        span.textContent = quotaLeft;
     }
 }
 
+// Если нужно убрать полностью quota-counter (по плану) — просто не используем updateQuotaDisplay
+function updateQuotaDisplay() {}
+
 function addGuestRow(source) {
-    if (currentGuestsCount >= maxGuests) return;
     let data = {};
     let relationDisplay = '';
     if (typeof source === 'object') {
@@ -75,6 +76,7 @@ function addGuestRow(source) {
     `;
     guestsList.appendChild(row);
 
+    // --- quota_type (select) ---
     let quotaTypes = [];
     if (isManual) {
         quotaTypes = window.QUOTA_TYPES ? window.QUOTA_TYPES.manual : ["Льготная квота", "Квота с полной стоимостью"];
@@ -82,24 +84,32 @@ function addGuestRow(source) {
         quotaTypes = window.QUOTA_TYPES ? window.QUOTA_TYPES.user : ["Льготная квота", "50% квота", "Квота с полной стоимостью"];
     }
     const quotaSelect = row.querySelector('.quota-type-select');
+    let selectedQuota = data.quota_type || quotaTypes[0]; // Если уже был выбран — подставим
     quotaTypes.forEach(function(qt) {
         const opt = document.createElement('option');
         opt.value = qt;
         opt.textContent = qt;
+        if (qt === selectedQuota) opt.selected = true;
         quotaSelect.appendChild(opt);
     });
 
-    currentGuestsCount++;
-    updateQuotaDisplay();
+    // обновить число квот сразу
+    updatePreferentialQuotaAvailable();
 
     row.querySelector('.remove-guest-btn').addEventListener('click', function() {
         row.remove();
-        currentGuestsCount--;
-        updateQuotaDisplay();
+        updatePreferentialQuotaAvailable();
     });
+
+        // обновлять доступное кол-во льготников при изменении типа квоты
+    quotaSelect.addEventListener('change', updatePreferentialQuotaAvailable);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    // показываем подсказку по квотам (если надо)
+    updatePreferentialQuotaAvailable();
+
+    // Если есть initialGuests (редактирование заявки) — восстанавливаем их
     if (Array.isArray(initialGuests) && initialGuests.length > 0) {
         initialGuests.forEach(addGuestRow);
     }
@@ -111,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Собираем гостей при отправке
     document.querySelector("form").addEventListener("submit", function(e) {
         const rows = document.querySelectorAll("#guests-list .guest-row");
         const guests = [];
@@ -126,6 +137,4 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         document.getElementById("id_guests").value = JSON.stringify(guests);
     });
-
-    updateQuotaDisplay();
 });
