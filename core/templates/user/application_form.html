@@ -18,12 +18,10 @@
     <div class="row mb-3">
         <div class="col-md-4">
             <select class="form-select" id="guest-type-select">
-                <option value="user_{{ user.id }}">Сотрудник: {{ user.last_name }} {{ user.first_name }} {{
-                    user.patronymic }}
+                <option value="user_{{ user.id }}">Сотрудник: {{ user.last_name }} {{ user.first_name }} {{ user.patronymic }}
                 </option>
                 {% for rel in relatives %}
-                <option value="relative_{{ rel.id }}">{{ rel.relation }}: {{ rel.last_name }} {{ rel.first_name }} {{
-                    rel.patronymic }}
+                <option value="relative_{{ rel.id }}">{{ rel.relation }}: {{ rel.last_name }} {{ rel.first_name }} {{ rel.patronymic }}
                 </option>
                 {% endfor %}
                 <option value="manual">Ввести вручную</option>

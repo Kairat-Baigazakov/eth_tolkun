@@ -27,7 +27,11 @@ from .views import (
     revoke_application,
     relatives_list,
     relative_create,
-    relative_edit
+    relative_edit,
+    moderator_application_list,
+    moderator_application_approve,
+    moderator_application_revision,
+    moderator_application_reject
 )
 
 urlpatterns = [
@@ -65,6 +69,11 @@ urlpatterns = [
     path('applications/delete/<int:app_id>/', delete_application, name='delete_application'),
     path('applications/revoke/<int:app_id>/', revoke_application, name='revoke_application'),
     path('applications/<int:app_id>/edit/', user_application_edit, name='user_application_edit'),
+
+    path('applications/', moderator_application_list, name='moderator_application_list'),
+    path('applications/<int:app_id>/approve/', moderator_application_approve, name='moderator_application_approve'),
+    path('applications/<int:app_id>/revision/', moderator_application_revision, name='moderator_application_revision'),
+    path('applications/<int:app_id>/reject/', moderator_application_reject, name='moderator_application_reject'),
 
     path('change-password/', auth_views.PasswordChangeView.as_view(
         template_name='account/change_password.html',

@@ -251,6 +251,97 @@ def rate_edit(request, pk):
     return render(request, 'admin/rates/rate_form.html', {'form': form, "title": "Редактирование тарифа"})
 
 
+# Заявки МОДЕР --------------------------------------------------------------------------------------------------------------------------------------------------
+@login_required
+@user_passes_test(admin_or_moderator)
+def moderator_application_list(request):
+    arrival_id = request.GET.get('arrival', '')
+    status_filter = request.GET.get('status', '')
+    year_filter = request.GET.get('year', '')
+    query = request.GET.get('q', '')
+
+    # Список заездов для фильтра
+    arrivals = Arrival.objects.all().order_by('-start_date')
+
+    applications = Application.objects.none()
+    page_obj = None
+    positions = {}
+
+    if arrival_id:
+        applications = Application.objects.filter(arrival__id=arrival_id).order_by('-created_at')
+        if query:
+            applications = applications.filter(author__last_name__icontains=query)
+        if status_filter:
+            applications = applications.filter(status=status_filter)
+        if year_filter:
+            applications = applications.filter(created_at__year=year_filter)
+
+        years = applications.dates('created_at', 'year', order='DESC')
+        statuses = Application.STATUS_CHOICES
+
+        paginator = Paginator(applications, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        # Рассчитываем позиции для sent-заявок в этом заезде
+        for app in applications:
+            sent_apps = Application.objects.filter(
+                arrival=app.arrival,
+                status='sent'
+            ).order_by('sent_at', 'id')
+            for pos, sent_app in enumerate(sent_apps, start=1):
+                positions[sent_app.id] = pos
+    else:
+        years = []
+        statuses = Application.STATUS_CHOICES
+
+    return render(request, 'applications/applications_list.html', {
+        'arrivals': arrivals,
+        'applications': applications,
+        'page_obj': page_obj,
+        'positions': positions,
+        'arrival_id': arrival_id,
+        'statuses': statuses,
+        'status_filter': status_filter,
+        'year_filter': year_filter,
+        'years': years,
+        'query': query,
+    })
+
+
+@login_required
+@user_passes_test(admin_or_moderator)
+def moderator_application_approve(request, app_id):
+    if request.method == "POST":
+        app = get_object_or_404(Application, id=app_id)
+        app.status = 'approved'
+        app.save()
+        messages.success(request, "Заявка одобрена.")
+    return redirect('moderator_application_list')
+
+
+@login_required
+@user_passes_test(admin_or_moderator)
+def moderator_application_revision(request, app_id):
+    if request.method == "POST":
+        app = get_object_or_404(Application, id=app_id)
+        app.status = 'revision'
+        app.save()
+        messages.info(request, "Заявка отправлена на доработку.")
+    return redirect('moderator_application_list')
+
+
+@login_required
+@user_passes_test(admin_or_moderator)
+def moderator_application_reject(request, app_id):
+    if request.method == "POST":
+        app = get_object_or_404(Application, id=app_id)
+        app.status = 'rejected'
+        app.save()
+        messages.error(request, "Заявка отклонена.")
+    return redirect('moderator_application_list')
+
+
 # Заявки  --------------------------------------------------------------------------------------------------------------------------------------------------
 @login_required
 def user_application_list(request):
