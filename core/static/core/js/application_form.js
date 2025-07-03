@@ -1,3 +1,4 @@
+// ЭТОТ JS ОТНОСИТСЯ К TEMPLATES/USER/APPLICATION_FORM & APPLICATION_EDIT
 const userData = window.userData || {};
 const relatives = window.relatives || [];
 const initialGuests = window.initialGuests || [];

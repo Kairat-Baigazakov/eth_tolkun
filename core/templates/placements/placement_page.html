@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load utils %}
+{% load static %}
+
+{% block title %}Размещение гостей{% endblock %}
+
+{% block content %}
+
+<h2>Размещение гостей по комнатам</h2>
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-3">
+        <select name="arrival" class="form-select" onchange="this.form.submit()">
+            <option value="">Выберите заезд...</option>
+            {% for a in arrivals %}
+            <option value="{{ a.id }}" {% if a.id|stringformat:"s" == arrival_id %}selected{% endif %}>
+                {{ a.name }} ({{ a.start_date|date:"d.m.Y" }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="building_type" class="form-select" onchange="this.form.submit()">
+            <option value="">Корпус...</option>
+            {% for bt in building_types %}
+            <option value="{{ bt }}" {% if bt == building_type %}selected{% endif %}>{{ bt }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="floor" class="form-select" onchange="this.form.submit()">
+            <option value="">Этаж...</option>
+            {% for f in floors %}
+            <option value="{{ f }}" {% if f|stringformat:"s" == floor %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Показать</button>
+    </div>
+</form>
+
+{% if arrival_id and building_type and floor %}
+<!-- Новая грид-сетка комнат -->
+<h4>Комнаты на этаже {{ floor }}, корпус "{{ building_type }}"</h4>
+<div class="rooms-grid mb-5">
+    {% for room in rooms %}
+        <div class="card room-card">
+            <div class="card-header bg-info-subtle d-flex justify-content-between align-items-center">
+                <strong>{{ room.name }}</strong>
+                <span class="badge bg-primary">{{ room.capacity }} мест</span>
+            </div>
+            <div class="card-body">
+                <form class="placement-form" data-room-id="{{ room.id }}">
+                    <div class="mb-2">
+                        {% with guest_fields=room_placements_map|get_item:room.id %}
+                            {% for guest_fio in guest_fields %}
+                                <input type="text" class="form-control mb-1 guest-field"
+                                       value="{{ guest_fio }}"
+                                       placeholder="Гость {{ forloop.counter }}">
+                            {% endfor %}
+                        {% endwith %}
+                    </div>
+                    <button type="button" class="btn btn-primary w-100 edit-room-btn" data-room-id="{{ room.id }}">
+                        Изменить
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+
+<!-- Схема этажа -->
+<div class="row mt-4">
+    <div class="col-12">
+        <h5>Схема этажа</h5>
+        <div class="d-flex justify-content-center align-items-end" style="min-height:40vh;">
+            <div class="floorplan-svg-container">
+                {% include "svg/build3floor2.svg" %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Модальное окно для расселения -->
+<div class="modal fade" id="placementModal" tabindex="-1" aria-labelledby="placementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="modal-form">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="placementModalLabel">Редактировать расселение</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modal-fields" class="row"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.availableGuests = {{ available_guests_json|safe }};
+    window.roomsData = {{ rooms_json|safe }};
+    window.csrfToken = "{{ csrf_token }}";
+</script>
+<script src="{% static 'core/js/basehtml.js' %}"></script>
+{% endblock %}

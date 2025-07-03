@@ -1,0 +1,75 @@
+/* core/static/core/css/custom.css используется в placements */
+
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+}
+.room-card {
+    background: #fff;
+    box-shadow: 0 2px 12px 0 rgba(33,37,41,0.06);
+    border-radius: 1.2rem;
+    border: 1px solid #e6eaf0;
+    padding-bottom: 1.5rem;
+    transition: box-shadow .2s;
+}
+.room-card:hover {
+    box-shadow: 0 6px 32px 0 rgba(33,37,41,0.14);
+    border-color: #b6d4fe;
+}
+
+.floorplan-svg-container svg {
+    width: 100%;
+    height: auto;
+    max-height: 65vh;
+    display: block;
+}
+.room-active {
+    stroke: #1867ff;
+    stroke-width: 3;
+    filter: drop-shadow(0 2px 10px #4b80ff33);
+}
+.room-full {
+    fill: #f5695f !important;
+}
+.room-partial {
+    fill: #ffd04a !important;
+}
+.room-empty {
+    fill: #69f584 !important;
+}
+.room-hover {
+    filter: drop-shadow(0 0 12px #1867ff55);
+}
+
+/* Cтили в хедерах и футерах используется в base */
+body {
+    background-color: #f8f9fa;
+}
+.header {
+    background-color: #343a40;
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+.header .datetime {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+.footer {
+    background-color: #343a40;
+    color: white;
+    padding: 0.75rem;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    font-size: 0.9rem;
+}

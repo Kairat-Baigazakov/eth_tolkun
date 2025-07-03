@@ -67,7 +67,7 @@
             {% endfor %}
         </td>
         <td class="text-center">
-            {% if app.status == "sent" %}
+            {% if app.status == "sent" or app.status == "revision" or app.status == "approved" %}
             {{ positions|get_item:app.id }}
             {% else %}
             <span class="text-muted">-</span>
@@ -85,6 +85,8 @@
             <span class="badge bg-danger">Отклонена</span>
             {% elif app.status == "cancelled" %}
             <span class="badge bg-warning text-dark">Отменена</span>
+            {% elif app.status == "revision" %}
+            <span class="badge bg-warning text-dark">На доработке</span>
             {% else %}
             <span class="badge bg-light text-dark">{{ app.status }}</span>
             {% endif %}
@@ -129,7 +131,6 @@
                     Отозвать заявку
                 </button>
             </form>
-            <span class="text-success">Отправлено</span>
             {% elif app.status == "new" %}
             <form method="post" action="{% url 'delete_application' app.id %}" style="display:inline;">
                 {% csrf_token %}
@@ -140,8 +141,10 @@
             </form>
             {% elif app.status == "cancelled" %}
             <span class="text-muted">Отозвана</span>
-            {% elif app.status != "new" %}
-            <span class="text-muted">-</span>
+            {% elif app.status == "rejected" %}
+            <span class="text-muted">Отклонена</span>
+            {% elif app.status == "approved" %}
+            <span class="text-muted">Одобрено</span>
             {% endif %}
         </td>
         <td>

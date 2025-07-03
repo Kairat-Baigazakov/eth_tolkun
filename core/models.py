@@ -59,36 +59,6 @@ class Relative(models.Model):
         return f"{self.last_name} {self.first_name} {self.patronymic} ({self.relation})"
 
 
-class RoomLayout(models.Model):
-    name = models.CharField("Наименование номера", max_length=100)
-    capacity = models.PositiveIntegerField("Количество мест")
-    floor = models.PositiveIntegerField("Этаж")
-    building_type = models.CharField("Тип корпуса", max_length=100)
-    created_at = models.DateTimeField("Дата создания", auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.name} ({self.capacity} мест, этаж {self.floor})"
-
-
-class Rate(models.Model):
-    name = models.CharField("Наименование", max_length=100)
-    price = models.DecimalField("Цена", max_digits=10, decimal_places=2)
-    vat = models.DecimalField("НДС (%)", max_digits=5, decimal_places=2, help_text="Процент НДС, например 20.00")
-    created_at = models.DateTimeField("Дата создания", auto_now_add=True)
-
-    building_type = models.CharField("Тип корпуса", max_length=100, blank=True, null=True)
-    room_layout = models.ForeignKey(
-        RoomLayout,
-        verbose_name="Планировка номера",
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True
-    )
-
-    def __str__(self):
-        return f"{self.name} — {self.price} сом. (+{self.vat}% НДС)"
-
-
 class Arrival(models.Model):
     STATUS_CHOICES = [
         ('active', 'Активный'),
@@ -126,21 +96,54 @@ class Application(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания заявки")
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Автор заявки", related_name='applications')
     arrival = models.ForeignKey('Arrival', on_delete=models.CASCADE, verbose_name="Связанный заезд", related_name='applications')
-
-    # Список отдыхающих (например, просто ФИО через запятую или отдельная модель)
-    # Если хочешь более сложную логику — можно сделать отдельную модель Guest и связать через ForeignKey/M2M
     guests = models.TextField(verbose_name="Список отдыхающих")
-
-    # Комнаты отдыхающих — если нужны отдельные комнаты, тоже можно через TextField или отдельную модель
     rooms = models.TextField(verbose_name="Комнаты отдыхающих", blank=True, null=True)
-
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Статус заявки")
     comment = models.TextField('Комментарий', blank=True)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid', verbose_name="Статус оплаты")
-
     document = models.FileField(upload_to='applications/docs/', blank=True, null=True, verbose_name="Прикрепленный документ")
-
     sent_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата и время отправки заявки")
 
     def __str__(self):
         return f"Заявка №{self.id} ({self.author.username})"
+
+
+class RoomLayout(models.Model):
+    name = models.CharField("Наименование номера", max_length=100)
+    capacity = models.PositiveIntegerField("Количество мест")
+    floor = models.PositiveIntegerField("Этаж")
+    building_type = models.CharField("Тип корпуса", max_length=100)
+    created_at = models.DateTimeField("Дата создания", auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.capacity} мест, этаж {self.floor})"
+
+
+class RoomPlacement(models.Model):
+    arrival = models.ForeignKey(Arrival, on_delete=models.CASCADE, related_name='room_placements')
+    room = models.ForeignKey(RoomLayout, on_delete=models.CASCADE, related_name='placements')
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='placements')
+    guest_fio = models.CharField("ФИО гостя", max_length=200)  # или связь с отдельной моделью Guest, если появится
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.guest_fio} -> {self.room.name} ({self.arrival.name})"
+
+
+class Rate(models.Model):
+    name = models.CharField("Наименование", max_length=100)
+    price = models.DecimalField("Цена", max_digits=10, decimal_places=2)
+    vat = models.DecimalField("НДС (%)", max_digits=5, decimal_places=2, help_text="Процент НДС, например 20.00")
+    created_at = models.DateTimeField("Дата создания", auto_now_add=True)
+
+    building_type = models.CharField("Тип корпуса", max_length=100, blank=True, null=True)
+    room_layout = models.ForeignKey(
+        RoomLayout,
+        verbose_name="Планировка номера",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True
+    )
+
+    def __str__(self):
+        return f"{self.name} — {self.price} сом. (+{self.vat}% НДС)"
