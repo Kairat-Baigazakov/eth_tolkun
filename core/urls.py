@@ -1,6 +1,6 @@
 from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
-from .views import (
+from core.views import (
     logout_view,
     admin_dashboard,
     moderator_dashboard,
@@ -16,12 +16,16 @@ from .views import (
     rate_list,
     rate_create,
     rate_edit,
+    set_active_rate,
     room_layout_list,
     room_layout_create,
     room_layout_edit,
     user_application_list,
     user_application_create,
     user_application_edit,
+    payment_check,
+    upload_documents,
+    approve_payment,
     send_application,
     delete_application,
     revoke_application,
@@ -31,7 +35,8 @@ from .views import (
     moderator_application_list,
     moderator_application_action,
     placement_page,
-    save_placements
+    save_placements,
+    assign_rooms
 )
 
 urlpatterns = [
@@ -52,8 +57,9 @@ urlpatterns = [
     path('dashboard/admin/relatives/<int:relative_id>/edit/', relative_edit, name='relative_edit'),
 
     path('dashboard/admin/rates/', rate_list, name='rate_list'),
+    path('dashboard/admin/rates/set_lgot_active/', set_active_rate, name='set_active_rate'),
     path('dashboard/admin/rates/create/', rate_create, name='rate_create'),
-    path('dashboard/admin/rates/<int:rate_id>/edit/', rate_edit, name='rate_edit'),
+    path('dashboard/admin/rates/<int:pk>/edit/', rate_edit, name='rate_edit'),
 
     path('dashboard/admin/room-layout/', room_layout_list, name='room_layout_list'),
     path('dashboard/admin/room-layout/create/', room_layout_create, name='room_layout_create'),
@@ -65,16 +71,22 @@ urlpatterns = [
 
     path('dashboard/user/applications/', user_application_list, name='user_applications_list'),
     path('dashboard/user/applications/create/', user_application_create, name='user_application_create'),
+
     path('applications/send/<int:app_id>/', send_application, name='send_application'),
     path('applications/delete/<int:app_id>/', delete_application, name='delete_application'),
     path('applications/revoke/<int:app_id>/', revoke_application, name='revoke_application'),
     path('applications/<int:app_id>/edit/', user_application_edit, name='user_application_edit'),
+    path('applications/<int:app_id>/payment_check/', payment_check, name='payment_check'),
+    path('applications/<int:app_id>/upload_documents/', upload_documents, name='upload_documents'),
+    path('applications/<int:app_id>/approve_payment/', approve_payment, name='approve_payment'),
+
 
     path('applications/', moderator_application_list, name='moderator_application_list'),
     path('applications/<int:app_id>/action/', moderator_application_action, name='moderator_application_action'),
 
     path('placement/', placement_page, name='placement_page'),
     path('placements/save/', save_placements, name='save_placements'),
+    path('placements/assign_rooms/', assign_rooms, name='assign_rooms'),
 
     path('change-password/', auth_views.PasswordChangeView.as_view(
         template_name='account/change_password.html',

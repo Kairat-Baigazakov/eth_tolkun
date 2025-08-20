@@ -20,11 +20,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('sendRevisionBtn').onclick = function() {
                     const comment = commentField.value;
                     sendAction(appId, action, comment, modal);
+                    location.reload();
                 };
             } else {
                 // approve или reject — сразу отправляем
                 sendAction(appId, action);
+                location.reload();
             }
+        });
+    });
+
+    document.querySelectorAll('.btn-pay').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (!confirm('Перевести заявку в статус "Ожидает оплаты"?')) return;
+
+            const appId = btn.dataset.appId;
+            fetch(`/applications/${appId}/action/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': window.CSRF_TOKEN,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({action: 'mark_payment_pending'})
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || "Ошибка!");
+                }
+            });
+        });
+    });
+
+    // Обработка кнопки "Оплачено"
+    document.querySelectorAll('.btn-approve-payment').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const appId = btn.getAttribute('data-app-id');
+            if (!confirm("Подтвердить, что оплата прошла?")) return;
+            fetch('/applications/' + appId + '/approve_payment/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': window.CSRF_TOKEN,
+                },
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert('Ошибка!');
+            });
         });
     });
 

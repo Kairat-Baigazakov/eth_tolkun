@@ -38,6 +38,9 @@
     <div class="col-md-2">
         <button type="submit" class="btn btn-primary w-100">Показать</button>
     </div>
+    <div class="col-md-2">
+        <button type="button" class="btn btn-success w-100" id="assignRoomsBtn">Заселить</button>
+    </div>
 </form>
 
 {% if arrival_id and building_type and floor %}
@@ -110,9 +113,11 @@
 
 {% block extra_js %}
 <script>
+    window.allGuests = {{ all_guests_json|safe }};
     window.availableGuests = {{ available_guests_json|safe }};
     window.roomsData = {{ rooms_json|safe }};
     window.csrfToken = "{{ csrf_token }}";
+    window.assignRoomsUrl = "{% url 'assign_rooms' %}?arrival={{ arrival_id }}&building_type={{ building_type }}&floor={{ floor }}";
 </script>
-<script src="{% static 'core/js/basehtml.js' %}"></script>
+<script src="{% static 'core/js/placements.js' %}"></script>
 {% endblock %}

@@ -10,30 +10,103 @@
     <div class="card-body">
         <form method="post">
             {% csrf_token %}
-
             <div class="mb-3">
                 <label class="form-label">Наименование</label>
                 {{ form.name|add_class:"form-control" }}
             </div>
-
-            <div class="mb-3">
-                <label class="form-label">Цена</label>
-                {{ form.price|add_class:"form-control" }}
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">НДС</label>
-                {{ form.vat|add_class:"form-control" }}
-            </div>
-
             <div class="mb-3">
                 <label class="form-label">Тип корпуса</label>
                 {{ form.building_type|add_class:"form-select" }}
             </div>
 
+            <hr>
+            <h6 class="text-primary mb-3">Полная стоимость</h6>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Стоимость</label>
+                    {{ form.price_full|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НДС</label>
+                    {{ form.nds_full|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НМА</label>
+                    {{ form.nma_full|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НСП</label>
+                    {{ form.nsp_full|add_class:"form-control" }}
+                </div>
+            </div>
+
+            <hr>
+            <h6 class="text-primary mb-3">50% стоимость</h6>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Стоимость</label>
+                    {{ form.price_50|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НДС</label>
+                    {{ form.nds_50|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НМА</label>
+                    {{ form.nma_50|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НСП</label>
+                    {{ form.nsp_50|add_class:"form-control" }}
+                </div>
+            </div>
+
+            <hr>
+            <h6 class="text-primary mb-3">Льготная стоимость №1</h6>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Стоимость</label>
+                    {{ form.price_lgot_1|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НДС</label>
+                    {{ form.nds_lgot_1|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НМА</label>
+                    {{ form.nma_lgot_1|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НСП</label>
+                    {{ form.nsp_lgot_1|add_class:"form-control" }}
+                </div>
+            </div>
+
+            <hr>
+            <h6 class="text-primary mb-3">Льготная стоимость №2</h6>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Стоимость</label>
+                    {{ form.price_lgot_2|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НДС</label>
+                    {{ form.nds_lgot_2|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НМА</label>
+                    {{ form.nma_lgot_2|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">НСП</label>
+                    {{ form.nsp_lgot_2|add_class:"form-control" }}
+                </div>
+            </div>
+
+            <hr>
             <div class="mb-3">
-                <label class="form-label">Наименование номера</label>
-                {{ form.room_layout|add_class:"form-select" }}
+                <label class="form-label">Активная льготная стоимость</label>
+                {{ form.lgot_active_set }}
             </div>
 
             <div class="d-flex justify-content-between">

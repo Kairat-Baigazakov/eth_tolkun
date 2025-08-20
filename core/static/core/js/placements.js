@@ -2,10 +2,34 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal = new bootstrap.Modal(document.getElementById('placementModal'));
     const modalForm = document.getElementById('modal-form');
     const modalFields = document.getElementById('modal-fields');
+    const assignBtn = document.getElementById('assignRoomsBtn');
 
     let editingRoomId = null;
     let roomCapacity = 0;
     let currentValues = [];
+    let allGuests = window.allGuests || [];
+
+    if (assignBtn) {
+        assignBtn.addEventListener('click', function() {
+            if (!confirm('Подтвердите заселение гостей по комнатам?')) return;
+
+            fetch(window.assignRoomsUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": window.csrfToken,
+                },
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Гости успешно заселены!');
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Не удалось заселить гостей'));
+                }
+            });
+        });
+    }
 
     // При клике "Изменить"
     document.querySelectorAll('.edit-room-btn').forEach(btn => {
@@ -26,43 +50,82 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function drawModalFields() {
+        // Destroy Select2 на старых полях
+        $(modalFields).find('.guest-select').select2('destroy');
+
         modalFields.innerHTML = '';
-        // Список доступных гостей + уже выбранные в этой комнате (для выбора/замены)
-        let available = window.availableGuests.map(g => g.fio);
+
+        let guests = window.availableGuests.map(g => ({ fio: g.fio, app_id: g.application_id }));
 
         for (let i = 0; i < roomCapacity; i++) {
-            // Уже выбранный в этом поле
             let selected = currentValues[i] || '';
-
-            // Гости, выбранные в других полях этой комнаты
             let selectedInOthers = currentValues.filter((fio, idx) => fio && idx !== i);
+            let options = guests.filter(g => !selectedInOthers.includes(g.fio) || g.fio === selected);
 
-            // Список опций: все доступные - кто не выбран в других полях, плюс этот выбранный если не в available
-            let options = available.filter(fio => !selectedInOthers.includes(fio));
-            // Если уже выбранный гость не в списке available (например, уже был размещён, но теперь освобождён),
-            // добавим его явно
-            if (selected && !options.includes(selected)) {
-                options.push(selected);
+            let selectedGuest = allGuests.find(g => g.fio === selected);
+            if (selected && !options.some(g => g.fio === selected)) {
+                options.push({
+                    fio: selected,
+                    app_id: selectedGuest ? selectedGuest.app_id : "?"
+                });
             }
 
-            // "Пусто" всегда сверху
-            let selectHtml = `<select class="form-select mb-2 guest-field" data-idx="${i}">
-                                <option value="">Пусто</option>
-                                ${options.map(fio =>`<option value="${fio}"${fio === selected ? ' selected' : ''}>${fio}</option>`).join('')}
-                              </select>`;
+            let selectHtml = `
+                <div class="input-group mb-2" style="align-items: center;">
+                    <select class="form-select guest-field guest-select" data-idx="${i}">
+                        <option value="">🟦 Пусто (свободно)</option>
+                        ${options.map(g =>
+                            `<option value="${g.fio}"${g.fio === selected ? ' selected' : ''}>👤 ${g.fio} (№${g.app_id || g.application_id || "?"})</option>`
+                          ).join('')}
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary clear-field-btn" data-idx="${i}" tabindex="-1" title="Очистить">&times;</button>
+                </div>
+            `;
             modalFields.insertAdjacentHTML('beforeend', selectHtml);
         }
 
-        // События — при смене, перерисовываем все селекты
+        // init Select2
+        $(modalFields).find('.guest-select').select2({
+            width: '100%',
+            dropdownParent: $('#placementModal'),
+            placeholder: 'Выберите гостя',
+            allowClear: false,
+            templateResult: function(data) {
+                if (!data.id) return $('<span style="color:#0d6efd;">🟦 Пусто (свободно)</span>');
+                const text = data.text || '';
+                let [_, fio, app] = text.match(/👤 ([^\(]+) \(№([^)]+)\)/) || [null, text, ''];
+                return $(`<div><b>${fio.trim()}</b> ${app ? '<small class="text-muted">№'+app+'</small>' : ''}</div>`);
+            },
+            templateSelection: function(data) {
+                if (!data.id) return $('<span style="color:#0d6efd;">🟦 Пусто</span>');
+                let text = data.text || '';
+                let [_, fio, app] = text.match(/👤 ([^\(]+) \(№([^)]+)\)/) || [null, text, ''];
+                return $(`<span>👤 ${fio.trim()} ${app ? '<small class="text-muted">(№'+app+')</small>' : ''}</span>`);
+            }
+        });
+
+        // Повесить события на очистку после каждой перерисовки
+        modalFields.querySelectorAll('.clear-field-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const idx = Number(btn.dataset.idx);
+                currentValues[idx] = '';
+                drawModalFields();
+            });
+        });
+
+        // Перерисовка при смене select2
         modalFields.querySelectorAll('.guest-field').forEach(sel => {
             sel.addEventListener('change', function () {
-                // Обновляем currentValues по индексу
                 const idx = Number(sel.dataset.idx);
                 currentValues[idx] = sel.value;
                 drawModalFields();
             });
         });
     }
+
+
+
 
     // Сохранение
     modalForm.addEventListener('submit', function (e) {

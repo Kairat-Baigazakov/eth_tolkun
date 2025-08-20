@@ -1,11 +1,11 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
-from .models import Arrival, Rate, RoomLayout, Application, Relative
+from .models import Arrival, Rate, RoomLayout, Application, Relative, ApplicationDocument
 import json
 
-User = get_user_model()
 
+User = get_user_model()
 
 class LoginForm(AuthenticationForm):
     username = forms.CharField(label="Логин", widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -49,6 +49,7 @@ class UserCreationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
 
 class UserEditForm(forms.ModelForm):
     birthdate = forms.DateField(
@@ -119,39 +120,34 @@ class ArrivalForm(forms.ModelForm):
 class RateForm(forms.ModelForm):
     class Meta:
         model = Rate
-        fields = ['name', 'price', 'vat', 'building_type', 'room_layout']
+        fields = [
+            'name',
+            'building_type',
+
+            # Full price
+            'price_full', 'nds_full', 'nma_full', 'nsp_full',
+
+            # 50% price
+            'price_50', 'nds_50', 'nma_50', 'nsp_50',
+
+            # Lgot 1
+            'price_lgot_1', 'nds_lgot_1', 'nma_lgot_1', 'nsp_lgot_1',
+
+            # Lgot 2
+            'price_lgot_2', 'nds_lgot_2', 'nma_lgot_2', 'nsp_lgot_2',
+
+            'lgot_active_set'
+        ]
+        widgets = {
+            'building_type': forms.Select(attrs={'class': 'form-select'}),
+            'lgot_active_set': forms.RadioSelect,
+        }
 
 
 class RoomLayoutForm(forms.ModelForm):
     class Meta:
         model = RoomLayout
         fields = ['name', 'capacity', 'floor', 'building_type']
-
-
-class ApplicationForm(forms.ModelForm):
-    guests = forms.CharField(widget=forms.HiddenInput)
-    class Meta:
-        model = Application
-        fields = [
-            'arrival',         # Выбор заезда
-            'guests',          # Список отдыхающих (текстовое поле)
-            'rooms',           # Комнаты (текстовое поле)
-            'document',        # Файл
-        ]
-    def clean(self):
-        cleaned_data = super().clean()
-        guests_raw = cleaned_data.get('guests', '[]')
-        try:
-            guests = json.loads(guests_raw)
-            preferential = [g for g in guests if g.get('quota_type') == 'Льготная квота']
-            free_quota = getattr(self, 'free_quota', None)
-            if free_quota is not None and len(preferential) > free_quota:
-                raise forms.ValidationError(
-                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {free_quota}."
-                )
-        except Exception:
-            raise forms.ValidationError("Ошибка в списке отдыхающих.")
-        return cleaned_data
 
 
 class RelativeForm(forms.ModelForm):
@@ -186,6 +182,32 @@ class RelativeForm(forms.ModelForm):
             self.fields['birthdate'].initial = self.instance.birthdate.strftime('%Y-%m-%d')
 
 
+class ApplicationForm(forms.ModelForm):
+    guests = forms.CharField(widget=forms.HiddenInput)
+
+    class Meta:
+        model = Application
+        fields = [
+            'arrival',         # Выбор заезда
+            'guests',          # Список отдыхающих (текстовое поле)
+            'rooms',           # Комнаты (текстовое поле)
+        ]
+    def clean(self):
+        cleaned_data = super().clean()
+        guests_raw = cleaned_data.get('guests', '[]')
+        try:
+            guests = json.loads(guests_raw)
+            preferential = [g for g in guests if g.get('quota_type') == 'Льготная квота']
+            free_quota = getattr(self, 'free_quota', None)
+            if free_quota is not None and len(preferential) > free_quota:
+                raise forms.ValidationError(
+                    f"Количество отдыхающих с льготной квотой превышает доступный лимит: {free_quota}."
+                )
+        except Exception:
+            raise forms.ValidationError("Ошибка в списке отдыхающих.")
+        return cleaned_data
+
+
 class ApplicationEditForm(forms.ModelForm):
     guests = forms.CharField(widget=forms.HiddenInput)
 
@@ -193,7 +215,6 @@ class ApplicationEditForm(forms.ModelForm):
         model = Application
         fields = [
             'guests',
-            'document',
         ]
 
     def clean(self):
@@ -211,3 +232,9 @@ class ApplicationEditForm(forms.ModelForm):
         except Exception:
             raise forms.ValidationError("Ошибка в списке отдыхающих.")
         return cleaned_data
+
+
+class ApplicationDocumentForm(forms.ModelForm):
+    class Meta:
+        model = ApplicationDocument
+        fields = ['file']

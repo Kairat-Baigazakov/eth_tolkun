@@ -18,13 +18,23 @@
     <div class="row mb-3">
         <div class="col-md-4">
             <select class="form-select" id="guest-type-select">
-                <option value="user_{{ user.id }}">Сотрудник: {{ user.last_name }} {{ user.first_name }} {{ user.patronymic }}
-                </option>
-                {% for rel in relatives %}
-                <option value="relative_{{ rel.id }}">{{ rel.relation }}: {{ rel.last_name }} {{ rel.first_name }} {{ rel.patronymic }}
-                </option>
-                {% endfor %}
-                <option value="manual">Ввести вручную</option>
+                <optgroup label="Сотрудник">
+                    <option value="user_{{ user.id }}">
+                        {{ user.last_name }} {{ user.first_name }} {{ user.patronymic }}
+                    </option>
+                </optgroup>
+                {% if relatives %}
+                <optgroup label="Родственники">
+                    {% for rel in relatives %}
+                    <option value="relative_{{ rel.id }}">
+                        {{ rel.last_name }} {{ rel.first_name }} {{ rel.patronymic }}
+                    </option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
+                <optgroup label="Другое">
+                    <option value="manual">Ввести вручную</option>
+                </optgroup>
             </select>
         </div>
         <div class="col-md-3">
@@ -37,14 +47,6 @@
     </div>
 
     <div id="guests-list"></div>
-
-    <div class="mb-3">
-        <label for="{{ form.document.id_for_label }}" class="form-label">Прикрепить документ (необязательно)</label>
-        {{ form.document|add_class:"form-control" }}
-        {% if form.document.errors %}
-        <div class="text-danger">{{ form.document.errors }}</div>
-        {% endif %}
-    </div>
 
     <input type="hidden" name="guests" id="id_guests">
 

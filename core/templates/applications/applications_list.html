@@ -53,7 +53,7 @@
 <table class="table table-bordered table-hover align-middle">
     <thead class="table-dark text-center">
     <tr>
-        <th>#</th>
+        <th>Номер заявки</th>
         <th>Дата создания</th>
         <th>ФИО сотрудника</th>
         <th>Отдыхающие</th>
@@ -73,9 +73,20 @@
         <td>{{ app.created_at|date:"d.m.Y H:i" }}</td>
         <td>{{ app.author.last_name }} {{ app.author.first_name }} {{ app.author.patronymic }}</td>
         <td>
-            {% for g in app.guests|parse_guests %}
-            {{ g }}<br>
-            {% endfor %}
+            <ul class="list-unstyled guest-list mb-0">
+                {% for guest in app.guests|parse_guests %}
+                <li>
+                    <span class="fw-bold">{{ guest.fio }}</span>
+                    <br>
+                    <small class="text-muted">
+                        {{ guest.relationship }}
+                        {% if guest.birthdate %}
+                            {{ guest.birthdate|slice:":10" }}
+                        {% endif %}
+                    </small>
+                </li>
+                {% endfor %}
+            </ul>
         </td>
         <td class="text-center">
             {% if app.status == "sent" or app.status == "approved" or app.status == "revision" %}
@@ -107,6 +118,8 @@
             <span class="badge bg-danger">Не оплачена</span>
             {% elif app.payment_status == "pending" %}
             <span class="badge bg-warning text-dark">Ожидает оплаты</span>
+            {% elif app.payment_status == "check_pay" %}
+            <span class="badge bg-info text-dark">Проверьте оплату</span>
             {% elif app.payment_status == "paid" %}
             <span class="badge bg-success">Оплачена</span>
             {% else %}
@@ -114,10 +127,12 @@
             {% endif %}
         </td>
         <td>
-            {% if app.document %}
-            <a href="{{ app.document.url }}" target="_blank">Документ</a>
+            {% if app.documents.exists %}
+                {% for doc in app.documents.all %}
+                    <a href="{{ doc.file.url }}" target="_blank">Документ {{ forloop.counter }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
             {% else %}
-            <span class="text-muted">Нет</span>
+                <span class="text-muted">Нет</span>
             {% endif %}
         </td>
         <td class="text-center">
@@ -131,6 +146,9 @@
             <button class="btn btn-danger btn-sm app-action-btn" data-app-id="{{ app.id }}" data-action="reject">
                 Отклонить
             </button>
+                {% if app.payment_status == "check_pay"%}
+                <button class="btn btn-info btn-sm btn-pay" data-app-id="{{ app.id }}">Оплатить</button>
+                {% endif %}
             {% elif app.status == "approved" %}
             <button class="btn btn-warning btn-sm app-action-btn" data-app-id="{{ app.id }}" data-action="revision">
                 Доработать
@@ -138,6 +156,12 @@
             <button class="btn btn-danger btn-sm app-action-btn" data-app-id="{{ app.id }}" data-action="reject">
                 Отклонить
             </button>
+                {% if app.payment_status == "unpaid" or app.payment_status == "check_pay"%}
+                <button class="btn btn-info btn-sm btn-pay" data-app-id="{{ app.id }}">Оплатить</button>
+                {% endif %}
+                {% if app.payment_status == "check_pay" %}
+                <button type="button" class="btn btn-success btn-sm btn-approve-payment" data-app-id="{{ app.id }}">Оплачено</button>
+                {% endif %}
             {% else %}
             <span class="text-muted">-</span>
             {% endif %}
@@ -179,19 +203,19 @@
         {% if page_obj.has_previous %}
         <li class="page-item">
             <a class="page-link"
-               href="?arrival={{ arrival_id }}&q={{ query }}&status={{ status_filter }}&page={{ page_obj.previous_page_number }}">Назад</a>
+               href="?arrival={{ arrival_id }}&q={{ query }}&status={{ status_filter|join:',' }}&page={{ page_obj.previous_page_number }}">Назад</a>
         </li>
         {% endif %}
         {% for num in page_obj.paginator.page_range %}
         <li class="page-item {% if page_obj.number == num %}active{% endif %}">
             <a class="page-link"
-               href="?arrival={{ arrival_id }}&q={{ query }}&status={{ status_filter }}&page={{ num }}">{{ num }}</a>
+               href="?arrival={{ arrival_id }}&q={{ query }}&status={{ status_filter|join:',' }}&page={{ num }}">{{ num }}</a>
         </li>
         {% endfor %}
         {% if page_obj.has_next %}
         <li class="page-item">
             <a class="page-link"
-               href="?arrival={{ arrival_id }}&q={{ query }}&status={{ status_filter }}&page={{ page_obj.next_page_number }}">Вперёд</a>
+               href="?arrival={{ arrival_id }}&q={{ query }}&status={{ status_filter|join:',' }}&page={{ page_obj.next_page_number }}">Вперёд</a>
         </li>
         {% endif %}
     </ul>
@@ -199,7 +223,11 @@
 {% endif %}
 
 <div class="d-flex justify-content-between">
-    <a href="{% url 'moderator_dashboard' %}" class="btn btn-secondary">Назад на главную страницу</a>
+    {% if role == "admin" %}
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Назад на главную страницу</a>
+    {% elif role == "moderator" %}
+        <a href="{% url 'moderator_dashboard' %}" class="btn btn-secondary">Назад на главную страницу</a>
+    {% endif %}
 </div>
 
 <script src="{% static 'core/js/applications_list.js' %}"></script>

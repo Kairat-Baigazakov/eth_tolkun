@@ -59,6 +59,7 @@ class Relative(models.Model):
         return f"{self.last_name} {self.first_name} {self.patronymic} ({self.relation})"
 
 
+
 class Arrival(models.Model):
     STATUS_CHOICES = [
         ('active', 'Активный'),
@@ -90,6 +91,7 @@ class Application(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ('unpaid', 'Не оплачена'),
         ('pending', 'Ожидает оплаты'),
+        ('check_pay', 'Проверьте оплату'),
         ('paid', 'Оплачена'),
     ]
 
@@ -101,22 +103,70 @@ class Application(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Статус заявки")
     comment = models.TextField('Комментарий', blank=True)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid', verbose_name="Статус оплаты")
-    document = models.FileField(upload_to='applications/docs/', blank=True, null=True, verbose_name="Прикрепленный документ")
     sent_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата и время отправки заявки")
+    guests_placemented = models.BooleanField(default=False, verbose_name="Все гости размещены")
 
     def __str__(self):
         return f"Заявка №{self.id} ({self.author.username})"
 
+    def check_guests_placemented(self):
+        """
+        Проверяет, размещены ли все гости заявки.
+        """
+        try:
+            guests = json.loads(self.guests or '[]')
+        except Exception:
+            guests = []
+        guests_fio = set(
+            " ".join([g.get("last_name", ""), g.get("first_name", ""), g.get("patronymic", "")]).strip().lower()
+            for g in guests if g.get("last_name") or g.get("first_name")
+        )
+        # Все fio из связанных RoomPlacement
+        placements = set(
+            (fio or '').strip().lower()
+            for fio in self.placements.values_list('guest_fio', flat=True)
+        )
+        all_placed = guests_fio <= placements
+
+        # Обновляем поле только если изменилось
+        if self.guests_placemented != all_placed:
+            self.guests_placemented = all_placed
+            self.save(update_fields=['guests_placemented'])
+        return all_placed
+
+
+class ApplicationDocument(models.Model):
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='documents')
+    file = models.FileField(upload_to='applications/docs/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Документ для заявки #{self.application.id}"
+
 
 class RoomLayout(models.Model):
+    BUILDING_TYPE_CHOICES = [
+        ('1', 'Корпус №1'),
+        ('2', 'Корпус №2'),
+        ('3', 'Корпус №3'),
+        ('4', 'Корпус №4'),
+        ('5', 'Корпус №5'),
+        ('lux1', 'Корпус люкс №1'),
+        ('lux2', 'Корпус люкс №2'),
+        ('lux3', 'Корпус люкс №3'),
+        ('lux4', 'Корпус люкс №4'),
+    ]
+
     name = models.CharField("Наименование номера", max_length=100)
     capacity = models.PositiveIntegerField("Количество мест")
     floor = models.PositiveIntegerField("Этаж")
-    building_type = models.CharField("Тип корпуса", max_length=100)
+    building_type = models.CharField("Тип корпуса", max_length=10, choices=BUILDING_TYPE_CHOICES)
     created_at = models.DateTimeField("Дата создания", auto_now_add=True)
 
     def __str__(self):
-        return f"{self.name} ({self.capacity} мест, этаж {self.floor})"
+        # Можно показывать корпус тоже!
+        bt = dict(self.BUILDING_TYPE_CHOICES).get(self.building_type, self.building_type)
+        return f"{self.name} ({self.capacity} мест, этаж {self.floor}, {bt})"
 
 
 class RoomPlacement(models.Model):
@@ -132,18 +182,54 @@ class RoomPlacement(models.Model):
 
 class Rate(models.Model):
     name = models.CharField("Наименование", max_length=100)
-    price = models.DecimalField("Цена", max_digits=10, decimal_places=2)
-    vat = models.DecimalField("НДС (%)", max_digits=5, decimal_places=2, help_text="Процент НДС, например 20.00")
-    created_at = models.DateTimeField("Дата создания", auto_now_add=True)
+    building_type = models.CharField("Тип корпуса", max_length=10, choices=RoomLayout.BUILDING_TYPE_CHOICES)
 
-    building_type = models.CharField("Тип корпуса", max_length=100, blank=True, null=True)
-    room_layout = models.ForeignKey(
-        RoomLayout,
-        verbose_name="Планировка номера",
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True
+    # --- Полная стоимость ---
+    price_full = models.DecimalField("Полная стоимость", max_digits=10, decimal_places=2)
+    nds_full = models.DecimalField("НДС (полная)", max_digits=10, decimal_places=2, default=0)
+    nma_full = models.DecimalField("НМА (полная)", max_digits=10, decimal_places=2, default=0)
+    nsp_full = models.DecimalField("НСП (полная)", max_digits=10, decimal_places=2, default=0)
+
+    # --- 50% стоимость ---
+    price_50 = models.DecimalField("50% стоимость", max_digits=10, decimal_places=2)
+    nds_50 = models.DecimalField("НДС (50%)", max_digits=10, decimal_places=2, default=0)
+    nma_50 = models.DecimalField("НМА (50%)", max_digits=10, decimal_places=2, default=0)
+    nsp_50 = models.DecimalField("НСП (50%)", max_digits=10, decimal_places=2, default=0)
+
+    # --- Льготная стоимость: две опции, для каждой свои налоги ---
+    price_lgot_1 = models.DecimalField("Льготная стоимость №1", max_digits=10, decimal_places=2)
+    nds_lgot_1 = models.DecimalField("НДС (льготная 1)", max_digits=10, decimal_places=2, default=0)
+    nma_lgot_1 = models.DecimalField("НМА (льготная 1)", max_digits=10, decimal_places=2, default=0)
+    nsp_lgot_1 = models.DecimalField("НСП (льготная 1)", max_digits=10, decimal_places=2, default=0)
+
+    price_lgot_2 = models.DecimalField("Льготная стоимость №2", max_digits=10, decimal_places=2)
+    nds_lgot_2 = models.DecimalField("НДС (льготная 2)", max_digits=10, decimal_places=2, default=0)
+    nma_lgot_2 = models.DecimalField("НМА (льготная 2)", max_digits=10, decimal_places=2, default=0)
+    nsp_lgot_2 = models.DecimalField("НСП (льготная 2)", max_digits=10, decimal_places=2, default=0)
+
+    LGOT_SET_CHOICES = [
+        (1, 'Льготная №1'),
+        (2, 'Льготная №2'),
+    ]
+    lgot_active_set = models.PositiveSmallIntegerField(
+        "Активная льготная стоимость", choices=LGOT_SET_CHOICES, default=1
     )
 
+    def get_active_lgot(self):
+        if self.lgot_active_set == 1:
+            return {
+                "price": self.price_lgot_1,
+                "nds": self.nds_lgot_1,
+                "nma": self.nma_lgot_1,
+                "nsp": self.nsp_lgot_1,
+            }
+        else:
+            return {
+                "price": self.price_lgot_2,
+                "nds": self.nds_lgot_2,
+                "nma": self.nma_lgot_2,
+                "nsp": self.nsp_lgot_2,
+            }
+
     def __str__(self):
-        return f"{self.name} — {self.price} сом. (+{self.vat}% НДС)"
+        return self.name

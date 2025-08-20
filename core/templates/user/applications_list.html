@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load application_extras %}
 {% block title %}Мои заявки{% endblock %}
 
@@ -37,7 +38,7 @@
 <table class="table table-bordered table-hover align-middle">
     <thead class="table-dark text-center">
     <tr>
-        <th>#</th>
+        <th>Номер заявки</th>
         <th>Дата создания</th>
         <th>Заезд</th>
         <th>Отдыхающие</th>
@@ -53,24 +54,35 @@
     <tbody>
     {% for app in applications %}
     <tr
-            data-app-id="{{ app.id }}"
-            data-app-status="{{ app.status }}"
-            data-app-start="{{ app.arrival.application_start|date:'Y-m-d\\TH:i:s' }}"
-            data-app-end="{{ app.arrival.application_end|date:'Y-m-d\\TH:i:s' }}"
+        data-app-id="{{ app.id }}"
+        data-app-status="{{ app.status }}"
+        data-app-start="{{ app.arrival.application_start|date:'Y-m-d\\TH:i:s' }}"
+        data-app-end="{{ app.arrival.application_end|date:'Y-m-d\\TH:i:s' }}"
     >
         <td>{{ app.id }}</td>
         <td>{{ app.created_at|date:"d.m.Y H:i" }}</td>
         <td>{{ app.arrival.name }}</td>
         <td>
-            {% for g in app.guests|parse_guests %}
-            {{ g }}<br>
-            {% endfor %}
+            <ul class="list-unstyled guest-list mb-0">
+                {% for guest in app.guests|parse_guests %}
+                <li>
+                    <span class="fw-bold">{{ guest.fio }}</span>
+                    <br>
+                    <small class="text-muted">
+                        {{ guest.relationship }}
+                        {% if guest.birthdate %}
+                            {{ guest.birthdate|slice:":10" }}
+                        {% endif %}
+                    </small>
+                </li>
+                {% endfor %}
+            </ul>
         </td>
         <td class="text-center">
-            {% if app.status == "sent" or app.status == "revision" or app.status == "approved" %}
-            {{ positions|get_item:app.id }}
+            {% if app.status in "sent,revision,approved" %}
+                {{ positions|get_item:app.id }}
             {% else %}
-            <span class="text-muted">-</span>
+                <span class="text-muted">-</span>
             {% endif %}
         </td>
         <td>{{ app.rooms }}</td>
@@ -98,53 +110,63 @@
             <span class="badge bg-warning text-dark">Ожидает оплаты</span>
             {% elif app.payment_status == "paid" %}
             <span class="badge bg-success">Оплачена</span>
+            {% elif app.payment_status == "check_pay" %}
+            <span class="badge bg-info text-dark">Проверьте оплату</span>
             {% else %}
             <span class="badge bg-light text-dark">{{ app.payment_status }}</span>
             {% endif %}
         </td>
         <td>
-            {% if app.document %}
-            <a href="{{ app.document.url }}" target="_blank">Документ</a>
+            {% if app.documents.exists %}
+                {% for doc in app.documents.all %}
+                    <a href="{{ doc.file.url }}" target="_blank">Документ {{ forloop.counter }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
             {% else %}
-            <span class="text-muted">Нет</span>
+                <span class="text-muted">Нет</span>
             {% endif %}
         </td>
         <td class="text-center">
-            <form method="post" action="{% url 'send_application' app.id %}" class="send-app-form"
-                  style="display:inline;">
+            <form method="post" action="{% url 'send_application' app.id %}" class="send-app-form" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-warning btn-sm send-app-btn" style="display:none;"
                         onclick="return confirm('Вы уверены, что хотите отправить эту заявку? После этого заявку нельзя будет изменить!');">
                     Отправить заявку
                 </button>
             </form>
-            {% if app.status == "new" or app.status == "revision" %}
-            <a href="{% url 'user_application_edit' app.id %}" class="btn btn-outline-primary btn-sm">
-                Редактировать
-            </a>
+            {% if app.status in "new,revision" %}
+                <a href="{% url 'user_application_edit' app.id %}" class="btn btn-outline-primary btn-sm">
+                    Редактировать
+                </a>
             {% endif %}
             {% if app.status == "sent" %}
-            <form method="post" action="{% url 'revoke_application' app.id %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm"
-                        onclick="return confirm('Вы уверены, что хотите отозвать эту заявку?');">
-                    Отозвать заявку
-                </button>
-            </form>
+                <form method="post" action="{% url 'revoke_application' app.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm"
+                            onclick="return confirm('Вы уверены, что хотите отозвать эту заявку?');">
+                        Отозвать заявку
+                    </button>
+                </form>
             {% elif app.status == "new" %}
-            <form method="post" action="{% url 'delete_application' app.id %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-outline-danger btn-sm"
-                        onclick="return confirm('Удалить заявку? Это действие необратимо.');">
-                    Удалить
-                </button>
-            </form>
+                <form method="post" action="{% url 'delete_application' app.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Удалить заявку? Это действие необратимо.');">
+                        Удалить
+                    </button>
+                </form>
             {% elif app.status == "cancelled" %}
-            <span class="text-muted">Отозвана</span>
+                <span class="text-muted">Отозвана</span>
             {% elif app.status == "rejected" %}
-            <span class="text-muted">Отклонена</span>
-            {% elif app.status == "approved" %}
-            <span class="text-muted">Одобрено</span>
+                <span class="text-muted">Отклонена</span>
+            {% endif %}
+            {% if app.status == "approved" and app.payment_status == "pending" %}
+                <button type="button"
+                        class="btn btn-info btn-sm btn-pay"
+                        data-app-id="{{ app.id }}"
+                        data-rate-name="{{ app.arrival.rate.name }}"
+                        data-building-type="{{ app.arrival.rate.building_type }}">
+                    Оплатить
+                </button>
             {% endif %}
         </td>
         <td>
@@ -153,7 +175,7 @@
     </tr>
     {% empty %}
     <tr>
-        <td colspan="9" class="text-center">Заявки не найдены.</td>
+        <td colspan="11" class="text-center">Заявки не найдены.</td>
     </tr>
     {% endfor %}
     </tbody>
@@ -182,37 +204,41 @@
     </ul>
 </nav>
 
-
 <div class="d-flex justify-content-between">
     <a href="{% url 'user_dashboard' %}" class="btn btn-secondary">Назад на главную страницу</a>
     <a href="{% url 'user_application_create' %}" class="btn btn-primary">Создать новую заявку</a>
 </div>
 
+<!-- Модальное окно для оплаты -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="payment-form" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentModalLabel">Инструкция по оплате</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="payment-info"></div>
+                    <div class="mb-3">
+                        <label for="payment-files" class="form-label">Добавьте файлы оплаты (чек, квитанция):</label>
+                        <input type="file" name="files" id="payment-files" multiple class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+                    <button type="submit" class="btn btn-success">Оплачено</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('tr[data-app-id]').forEach(function(row) {
-            const status = row.dataset.appStatus;
-            const startStr = row.dataset.appStart;
-            const endStr = row.dataset.appEnd;
-            const btn = row.querySelector('.send-app-btn');
-            if (!btn) return;
-            function updateButton() {
-                const now = new Date();
-                const start = new Date(startStr.replace(' ', 'T'));
-                const end = new Date(endStr.replace(' ', 'T'));
-                if (status === "new" && now >= start && now <= end) {
-                    btn.style.display = "";
-                    btn.disabled = false;
-                } else {
-                    btn.style.display = "none";
-                }
-            }
-            updateButton();
-            setInterval(updateButton, 1000);
-        });
-    });
-</script>
-
+{% block extra_js %}
+    <script>
+        window.RATES_MAP = {{ rates_map_json|safe }};
+        window.APPLICATIONS_GUESTS = {{ applications_guests_json|safe }};
+    </script>
+    <script src="{% static 'core/js/user_applications.js' %}"></script>
 {% endblock %}

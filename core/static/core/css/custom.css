@@ -1,3 +1,37 @@
+.guest-list li {
+    margin-bottom: 0.5em;
+    border-bottom: 1px dashed #e0e0e0;
+    padding-bottom: 0.3em;
+}
+.guest-list li:last-child {
+    border-bottom: none;
+}
+.fw-bold {
+    font-weight: 600;
+}
+select.form-select optgroup[label] {
+    color: #343a40;
+    font-weight: bold;
+    background: #e9ecef;
+}
+.select2-container .select2-selection--single {
+    height: 42px !important;
+    min-height: 38px;
+    line-height: 36px !important;
+    box-sizing: border-box;
+    padding-right: 38px; /* место для стрелки */
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    padding-right: 10px;
+}
+.input-group { flex-wrap: nowrap; }
+
 /* core/static/core/css/custom.css используется в placements */
 
 .rooms-grid {

@@ -13,19 +13,8 @@
         <label class="form-label">Тип корпуса</label>
         <select name="building_type" class="form-select">
             <option value="">Все типы</option>
-            {% for type in building_types %}
-                <option value="{{ type }}" {% if building_type_filter == type %}selected{% endif %}>{{ type }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-3">
-        <label class="form-label">Наименование номера</label>
-        <select name="room_layout" class="form-select">
-            <option value="">Все номера</option>
-            {% for room in room_layouts %}
-                <option value="{{ room.id }}" {% if room_layout_filter == room.id|stringformat:"s" %}selected{% endif %}>
-                    {{ room.name }}
-                </option>
+            {% for val, label in building_types %}
+                <option value="{{ val }}" {% if building_type_filter == type %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
     </div>
@@ -35,36 +24,105 @@
     </div>
 </form>
 
-<table class="table table-hover table-bordered align-middle">
-    <thead class="table-dark text-center">
-        <tr>
-            <th>Наименование</th>
-            <th>Цена</th>
-            <th>НДС</th>
-            <th>Тип корпуса</th>
-            <th>Номер</th>
-            <th>Дата создания</th>
-            <th>Действие</th>
+<table class="table table-bordered align-middle">
+    <thead>
+        <tr class="table-dark text-center align-middle">
+            <th rowspan="2" class="align-middle">Наименование</th>
+            <th rowspan="2" class="align-middle">Тип корпуса</th>
+            <th colspan="4">Полная стоимость</th>
+            <th colspan="4">50% стоимость</th>
+            <th colspan="4">Льготная стоимость №1</th>
+            <th colspan="4">Льготная стоимость №2</th>
+            <th rowspan="2" class="align-middle">Активная льгота</th>
+            <th rowspan="2" class="align-middle">Действие</th>
+        </tr>
+        <tr class="text-center align-middle">
+            <th style="background: #e6f7ff;">Цена</th>
+            <th style="background: #e6f7ff;">НДС</th>
+            <th style="background: #e6f7ff;">НМА</th>
+            <th style="background: #e6f7ff;">НСП</th>
+            <th style="background: #fff7e6;">Цена</th>
+            <th style="background: #fff7e6;">НДС</th>
+            <th style="background: #fff7e6;">НМА</th>
+            <th style="background: #fff7e6;">НСП</th>
+            <th style="background: #f6ffed;">Цена</th>
+            <th style="background: #f6ffed;">НДС</th>
+            <th style="background: #f6ffed;">НМА</th>
+            <th style="background: #f6ffed;">НСП</th>
+            <th style="background: #f9f0ff;">Цена</th>
+            <th style="background: #f9f0ff;">НДС</th>
+            <th style="background: #f9f0ff;">НМА</th>
+            <th style="background: #f9f0ff;">НСП</th>
         </tr>
     </thead>
     <tbody>
         {% for rate in rates %}
         <tr>
             <td>{{ rate.name }}</td>
-            <td class="text-end">{{ rate.price }}</td>
-            <td class="text-end">{{ rate.vat }}</td>
             <td>{{ rate.building_type }}</td>
-            <td>{{ rate.room_layout.name }}</td>
-            <td>{{ rate.created_at|date:"d.m.Y H:i" }}</td>
+            <td style="background: #e6f7ff;">{{ rate.price_full }}</td>
+            <td style="background: #e6f7ff;">{{ rate.nds_full }}</td>
+            <td style="background: #e6f7ff;">{{ rate.nma_full }}</td>
+            <td style="background: #e6f7ff;">{{ rate.nsp_full }}</td>
+
+            <td style="background: #fff7e6;">{{ rate.price_50 }}</td>
+            <td style="background: #fff7e6;">{{ rate.nds_50 }}</td>
+            <td style="background: #fff7e6;">{{ rate.nma_50 }}</td>
+            <td style="background: #fff7e6;">{{ rate.nsp_50 }}</td>
+
+            <td style="background: #f6ffed;">{{ rate.price_lgot_1 }}</td>
+            <td style="background: #f6ffed;">{{ rate.nds_lgot_1 }}</td>
+            <td style="background: #f6ffed;">{{ rate.nma_lgot_1 }}</td>
+            <td style="background: #f6ffed;">{{ rate.nsp_lgot_1 }}</td>
+
+            <td style="background: #f9f0ff;">{{ rate.price_lgot_2 }}</td>
+            <td style="background: #f9f0ff;">{{ rate.nds_lgot_2 }}</td>
+            <td style="background: #f9f0ff;">{{ rate.nma_lgot_2 }}</td>
+            <td style="background: #f9f0ff;">{{ rate.nsp_lgot_2 }}</td>
+
             <td class="text-center">
-                <a href="{% url 'rate_edit' rate.id %}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                <div class="form-check form-switch d-inline-flex align-items-center">
+                    <input class="form-check-input lgot-toggle" type="checkbox" data-rate-id="{{ rate.id }}" {% if rate.lgot_active_set == 2 %}checked{% endif %} style="cursor:pointer;">
+                    <label class="form-check-label ms-2">
+                    <span class="badge bg-success" {% if rate.lgot_active_set == 1 %}style="opacity:1"{% else %}style="opacity:0.5"{% endif %}>1</span>
+                    <span class="badge bg-primary" {% if rate.lgot_active_set == 2 %}style="opacity:1"{% else %}style="opacity:0.5"{% endif %}>2</span>
+                    </label>
+                    <span class="spinner-border spinner-border-sm ms-2 text-primary d-none" role="status"></span>
+                </div>
+            </td>
+            <td class="text-center">
+                <a href="{% url 'rate_edit' rate.id %}" class="btn btn-sm btn-outline-primary">
+                    Редактировать
+                </a>
             </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="7" class="text-center">Тарифы не найдены.</td>
+            <td colspan="21" class="text-center">Тарифы не найдены.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+
+<script>
+document.querySelectorAll('.lgot-toggle').forEach(function(toggle){
+    toggle.addEventListener('change', function(){
+        var rateId = this.dataset.rateId;
+        var value = this.checked ? 2 : 1; // switch включён → льгота 2, выключен → льгота 1
+        var spinner = this.closest('.form-check').querySelector('.spinner-border');
+        spinner && spinner.classList.remove('d-none');
+        fetch('/dashboard/admin/rates/set_lgot_active/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'rate_id=' + rateId + '&lgot_active_set=' + value
+        }).then(resp=>resp.json())
+          .then(data=>{
+            spinner && spinner.classList.add('d-none');
+            if(data.success) location.reload();
+            else alert('Ошибка: не удалось обновить тариф.');
+        });
+    });
+});
+</script>
 {% endblock %}
